@@ -18,7 +18,7 @@ that do not require a graphics device.
 | Attacking | Shooting cooldown |
 | Projectiles | Direction, speed, damage, and elapsed-time movement |
 | Enemies | Rusher, Tank, and Boss durability and statistics |
-| Boss attack | Fire interval and hostile projectile movement |
+| Boss attack | Fire interval, Rusher reinforcement interval, and hostile projectile movement |
 | Distance | Pythagorean distance and pickup radius |
 | Vectors | Direction normalization |
 | Dot product | Target-in-front result |
@@ -46,6 +46,7 @@ Tests include:
 - A Tank surviving the first two projectile hits
 - Double Shot refusing a third simultaneous projectile
 - Triple Shot activating only through the boss-preparation upgrade
+- Boss Rusher reinforcements spawning only at their configured interval
 
 ## 4. Independence and repeatability
 
@@ -91,3 +92,5 @@ Manual playtesting verifies:
     a 3.5-second fade, and loops gameplay without replaying the intro.
 15. Clearing wave four shows Boss Prep; defeating the guardian after wave five
     displays the Victory screen.
+16. The final guardian fires dodge-only purple projectiles and summons Rusher
+    reinforcements during the battle.

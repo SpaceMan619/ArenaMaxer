@@ -158,7 +158,7 @@ Lerp is used in three different visual systems:
 
 ## 6. Difficulty progression
 
-Each wave has a fixed enemy quota: wave one has 10 enemies and every later wave
+Each wave has a fixed enemy quota: wave one has 15 enemies and every later wave
 adds four more. Combat pauses only when the full quota has spawned and the arena
 is empty. The player then chooses one of three permanent upgrades. A global
 `0.9` balance multiplier reduces enemy movement speed and contact damage by 10%.
@@ -172,9 +172,9 @@ Tank enemies also appear more frequently as the wave increases. This increases
 difficulty through both spawn frequency and enemy composition.
 
 After wave four, the player enters Boss Prep and may choose Triple Shot instead
-of the normal Double Shot. Wave five contains only the final guardian. Its
-projectiles can be avoided or destroyed by player projectiles; defeating it ends
-the game with a Victory screen.
+of the normal Double Shot. Wave five contains only the final guardian. Its aimed
+projectiles must be dodged, and it summons pairs of Rushers every seven seconds;
+defeating it ends the game with a Victory screen.
 
 ## 7. UI and game logic communication
 

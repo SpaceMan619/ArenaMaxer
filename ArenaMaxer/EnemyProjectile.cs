@@ -3,10 +3,10 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>A slow hostile projectile that the player can shoot to destroy.</summary>
+/// <summary>A hostile projectile that the player must avoid during the boss battle.</summary>
 public sealed class EnemyProjectile
 {
-    public const float Speed = 250f;
+    public const float Speed = 310f;
     public const float MaximumLifetime = 4f;
     public const int Size = 16;
 

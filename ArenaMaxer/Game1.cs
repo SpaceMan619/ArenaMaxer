@@ -18,6 +18,7 @@ public sealed class Game1 : Game
     private const int FinalBossWave = 5;
     private static readonly Rectangle ArenaBounds = new(20, 76, ScreenWidth - 40, ScreenHeight - 108);
     private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 355, 220, 58);
+    private static readonly Rectangle VictoryPlayButton = new(ScreenWidth / 2 - 110, 430, 220, 58);
     private static readonly Rectangle HealthUpgradeCard = new(92, 226, 260, 210);
     private static readonly Rectangle DoubleShotUpgradeCard = new(382, 226, 260, 210);
     private static readonly Rectangle DamageUpgradeCard = new(672, 226, 260, 210);
@@ -108,9 +109,10 @@ public sealed class Game1 : Game
             Exit();
 
         bool enterPressed = IsNewKeyPress(keyboard, Keys.Enter);
+        Rectangle activeButton = _state == GameState.Victory ? VictoryPlayButton : PlayButton;
         bool clickedPlay = mouse.LeftButton == ButtonState.Pressed
             && _previousMouse.LeftButton == ButtonState.Released
-            && PlayButton.Contains(mouse.Position);
+            && activeButton.Contains(mouse.Position);
 
         switch (_state)
         {
@@ -311,11 +313,23 @@ public sealed class Game1 : Game
             }
         }
 
+        if (_boss.TrySpawnMinions(deltaTime))
+        {
+            for (int count = 0; count < BossEnemy.MinionsPerSpawn; count++)
+                _enemies.Add(new RusherEnemy(RandomEdgePosition()));
+            _statusMessage = "RUSHER REINFORCEMENTS";
+            _statusTimer = 1.1f;
+        }
+
+        foreach (Enemy enemy in _enemies)
+            enemy.Update(_player.Position, deltaTime);
+
         foreach (Projectile projectile in _projectiles)
             projectile.Update(deltaTime);
         foreach (EnemyProjectile projectile in _enemyProjectiles)
             projectile.Update(deltaTime);
 
+        HandleCollisions();
         HandleBossCollisions(deltaTime);
         RemoveExpiredProjectiles();
         RemoveExpiredEnemyProjectiles();
@@ -435,24 +449,6 @@ public sealed class Game1 : Game
         for (int projectileIndex = _projectiles.Count - 1; projectileIndex >= 0; projectileIndex--)
         {
             Projectile playerProjectile = _projectiles[projectileIndex];
-            bool blocked = false;
-            for (int enemyProjectileIndex = _enemyProjectiles.Count - 1;
-                enemyProjectileIndex >= 0;
-                enemyProjectileIndex--)
-            {
-                if (!CollisionHelper.Intersects(playerProjectile.Bounds, _enemyProjectiles[enemyProjectileIndex].Bounds))
-                    continue;
-
-                _projectiles.RemoveAt(projectileIndex);
-                _enemyProjectiles.RemoveAt(enemyProjectileIndex);
-                _sounds.PlayEnemyHit();
-                blocked = true;
-                break;
-            }
-
-            if (blocked)
-                continue;
-
             if (!CollisionHelper.Intersects(playerProjectile.Bounds, _boss.Bounds))
                 continue;
 
@@ -741,7 +737,7 @@ public sealed class Game1 : Game
         {
             Rectangle statusPanel = new(ScreenWidth / 2 - 125, 88, 250, 42);
             DrawPanel(statusPanel, PanelDark, Crimson);
-            DrawCentredText("BLOCK OR DODGE", statusPanel, SoftWhite);
+            DrawCentredText("DODGE THE BARRAGE", statusPanel, SoftWhite);
         }
 
         Rectangle controlsPanel = new(132, 570, 760, 28);
@@ -841,27 +837,34 @@ public sealed class Game1 : Game
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
         DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Ink * (0.82f * alpha));
-        Rectangle panel = new(208, 112, 608, 382);
+        Rectangle panel = new(112, 82, 800, 438);
         DrawPanel(panel, PanelDark * alpha, Gold * alpha);
-        DrawRectangle(new Rectangle(220, 124, 584, 8), Cyan * alpha);
-        DrawCentredText("ARENA SECURED", new Rectangle(0, 165, ScreenWidth, 54), Gold * alpha);
-        DrawCentredText("FINAL GUARDIAN DEFEATED", new Rectangle(0, 214, ScreenWidth, 30),
+        DrawRectangle(new Rectangle(126, 96, 772, 8), Cyan * alpha);
+        DrawRectangle(new Rectangle(126, 496, 772, 8), Gold * alpha);
+        DrawCentredText("ARENA SECURED", new Rectangle(0, 138, ScreenWidth, 58), Gold * alpha);
+        DrawCentredText("FINAL GUARDIAN DEFEATED", new Rectangle(0, 200, ScreenWidth, 34),
             SoftWhite * alpha);
-        DrawStatPanel(new Rectangle(314, 264, 190, 44), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
-        DrawStatPanel(new Rectangle(520, 264, 190, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
-        DrawStatPanel(new Rectangle(390, 321, 244, 44), "HIGH", _highScore.ToString(), Gold * alpha);
-        DrawButton("PLAY AGAIN", alpha);
+        DrawCentredText("THE ARENA IS YOURS", new Rectangle(0, 242, ScreenWidth, 30), Cyan * alpha);
+        DrawStatPanel(new Rectangle(278, 300, 218, 48), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(528, 300, 218, 48), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(390, 364, 244, 48), "HIGH", _highScore.ToString(), Gold * alpha);
+        DrawButton("PLAY AGAIN", alpha, VictoryPlayButton);
     }
 
     private void DrawButton(string text, float alpha)
     {
+        DrawButton(text, alpha, PlayButton);
+    }
+
+    private void DrawButton(string text, float alpha, Rectangle area)
+    {
         MouseState mouse = Mouse.GetState();
-        bool hovered = PlayButton.Contains(mouse.Position);
+        bool hovered = area.Contains(mouse.Position);
         Color buttonColour = hovered ? Cyan : Blue;
-        DrawRectangle(new Rectangle(PlayButton.X + 7, PlayButton.Y + 7, PlayButton.Width, PlayButton.Height),
+        DrawRectangle(new Rectangle(area.X + 7, area.Y + 7, area.Width, area.Height),
             Shadow * alpha);
-        DrawRectangle(PlayButton, Gold * alpha);
-        Rectangle buttonInner = PlayButton;
+        DrawRectangle(area, Gold * alpha);
+        Rectangle buttonInner = area;
         buttonInner.Inflate(-4, -4);
         DrawRectangle(buttonInner, buttonColour * alpha);
         DrawBorder(buttonInner, 3, PanelDark * alpha);

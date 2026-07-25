@@ -33,10 +33,10 @@ public sealed class GameplayLogicTests
         });
     }
 
-    [TestCase(1, 10)]
-    [TestCase(2, 14)]
-    [TestCase(3, 18)]
-    [TestCase(10, 46)]
+    [TestCase(1, 15)]
+    [TestCase(2, 19)]
+    [TestCase(3, 23)]
+    [TestCase(10, 51)]
     public void EnemiesRequiredForWave_IncreasesByFourEachWave(int wave, int expectedEnemies)
     {
         Assert.That(DifficultyCalculator.EnemiesRequiredForWave(wave), Is.EqualTo(expectedEnemies));

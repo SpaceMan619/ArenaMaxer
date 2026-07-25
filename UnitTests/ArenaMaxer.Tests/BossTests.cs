@@ -12,7 +12,7 @@ public sealed class BossTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(boss.MaximumHealth, Is.EqualTo(260));
+            Assert.That(boss.MaximumHealth, Is.EqualTo(520));
             Assert.That(boss.ScoreValue, Is.EqualTo(1000));
             Assert.That(boss.Size, Is.EqualTo(100));
         });
@@ -40,5 +40,15 @@ public sealed class BossTests
             Assert.That(projectile.Position.X, Is.EqualTo(EnemyProjectile.Speed * 0.5f).Within(0.001f));
             Assert.That(projectile.Damage, Is.EqualTo(BossEnemy.ProjectileDamage));
         });
+    }
+
+    [Test]
+    public void Boss_SpawnsReinforcementsAtItsConfiguredInterval()
+    {
+        BossEnemy boss = new(Vector2.Zero);
+
+        Assert.That(boss.TrySpawnMinions(BossEnemy.MinionSpawnInterval - 0.01f), Is.False);
+        Assert.That(boss.TrySpawnMinions(0.01f), Is.True);
+        Assert.That(BossEnemy.MinionsPerSpawn, Is.EqualTo(2));
     }
 }

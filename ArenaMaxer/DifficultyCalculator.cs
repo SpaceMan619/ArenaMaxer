@@ -14,7 +14,7 @@ public static class DifficultyCalculator
 
     /// <summary>Returns the number of enemies that must be removed to clear a wave.</summary>
     public static int EnemiesRequiredForWave(int wave) =>
-        6 + Math.Max(1, wave) * 4;
+        11 + Math.Max(1, wave) * 4;
 
     /// <summary>Reports whether every enemy required by a wave has spawned and been removed.</summary>
     public static bool IsWaveComplete(int enemiesSpawned, int activeEnemies, int requiredEnemies) =>
