@@ -6,7 +6,7 @@ ArenaMaxer is a top-down survival game. The player moves inside a bounded
 arena, fires projectiles in the last movement direction, defeats enemies, collects
 health power-ups, and attempts to survive increasingly difficult waves.
 
-The visual design for Version 1 uses geometric placeholders:
+The current visual design uses geometric pixel-art forms:
 
 - Blue square: player
 - Red square: fast Rusher enemy
@@ -149,10 +149,12 @@ Lerp is used in three different visual systems:
 
 ## 6. Difficulty progression
 
-Each wave lasts 20 seconds. The spawn interval uses:
+Each wave lasts 25 seconds. A global `0.8` balance multiplier reduces enemy
+movement speed, contact damage, and spawn frequency by 20%. The spawn interval
+uses:
 
 ```text
-max(0.38, 1.35 - (wave - 1) × 0.11)
+max(0.475, (1.35 - (wave - 1) × 0.11) / 0.8)
 ```
 
 Tank enemies also appear more frequently as the wave increases. This increases

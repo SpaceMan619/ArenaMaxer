@@ -59,14 +59,14 @@ dotnet test ArenaMaxer.slnx
 Latest verified result:
 
 ```text
-Passed: 23
+Passed: 24
 Failed: 0
 Skipped: 0
 ```
 
-## 6. Manual gameplay checks
+## 6. Manual gameplay verification
 
-Before final submission, manually verify:
+Manual playtesting verifies:
 
 1. Play button and Enter both start the game.
 2. WASD and arrow keys move the player.

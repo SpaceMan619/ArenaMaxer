@@ -6,7 +6,13 @@ namespace ArenaMaxer;
 public sealed class TankEnemy : Enemy
 {
     public TankEnemy(Vector2 position)
-        : base(position, maximumHealth: 30, contactDamage: 25, speed: 62f, size: 54, scoreValue: 150)
+        : base(
+            position,
+            maximumHealth: 30,
+            contactDamage: DifficultyCalculator.ContactDamage(25),
+            speed: DifficultyCalculator.EnemySpeed(62f),
+            size: 54,
+            scoreValue: 150)
     {
     }
 }

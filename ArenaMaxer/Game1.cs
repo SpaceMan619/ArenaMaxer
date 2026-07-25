@@ -15,8 +15,19 @@ public sealed class Game1 : Game
 {
     public const int ScreenWidth = 1024;
     public const int ScreenHeight = 600;
-    private static readonly Rectangle ArenaBounds = new(18, 72, ScreenWidth - 36, ScreenHeight - 90);
+    private static readonly Rectangle ArenaBounds = new(20, 76, ScreenWidth - 40, ScreenHeight - 108);
     private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 355, 220, 58);
+    private static readonly Color Ink = new(7, 10, 24);
+    private static readonly Color Shadow = new(2, 4, 12);
+    private static readonly Color PanelDark = new(14, 22, 46);
+    private static readonly Color PanelMid = new(25, 39, 72);
+    private static readonly Color ArenaFloor = new(20, 31, 55);
+    private static readonly Color ArenaTile = new(25, 38, 66);
+    private static readonly Color Cyan = new(48, 216, 220);
+    private static readonly Color Blue = new(53, 138, 238);
+    private static readonly Color Gold = new(255, 203, 71);
+    private static readonly Color Crimson = new(235, 64, 82);
+    private static readonly Color SoftWhite = new(224, 237, 244);
 
     private readonly GraphicsDeviceManager _graphics;
     private readonly Random _random = new();
@@ -289,7 +300,7 @@ public sealed class Game1 : Game
         _projectiles.Clear();
         _powerUps.Clear();
         _scoreManager.Reset();
-        _spawnTimer = 1f;
+        _spawnTimer = DifficultyCalculator.SpawnInterval(1);
         _powerUpTimer = 8f;
         _survivalScoreTimer = 0f;
         _elapsedSurvivalTime = 0f;
@@ -303,7 +314,7 @@ public sealed class Game1 : Game
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(new Color(10, 15, 28));
+        GraphicsDevice.Clear(Ink);
         _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
         DrawArena();
@@ -323,42 +334,74 @@ public sealed class Game1 : Game
 
     private void DrawArena()
     {
-        DrawRectangle(ArenaBounds, new Color(22, 32, 52));
-        DrawBorder(ArenaBounds, 3, new Color(49, 190, 190));
+        DrawRectangle(new Rectangle(ArenaBounds.X + 6, ArenaBounds.Y + 6, ArenaBounds.Width, ArenaBounds.Height), Shadow);
+        DrawRectangle(ArenaBounds, ArenaFloor);
 
-        for (int x = ArenaBounds.Left + 40; x < ArenaBounds.Right; x += 80)
-            DrawRectangle(new Rectangle(x, ArenaBounds.Top, 1, ArenaBounds.Height), new Color(35, 48, 70));
-        for (int y = ArenaBounds.Top + 40; y < ArenaBounds.Bottom; y += 80)
-            DrawRectangle(new Rectangle(ArenaBounds.Left, y, ArenaBounds.Width, 1), new Color(35, 48, 70));
+        const int tileSize = 48;
+        for (int y = ArenaBounds.Top; y < ArenaBounds.Bottom; y += tileSize)
+        {
+            for (int x = ArenaBounds.Left; x < ArenaBounds.Right; x += tileSize)
+            {
+                int column = (x - ArenaBounds.Left) / tileSize;
+                int row = (y - ArenaBounds.Top) / tileSize;
+                if ((column + row) % 2 == 0)
+                {
+                    int width = Math.Min(tileSize, ArenaBounds.Right - x);
+                    int height = Math.Min(tileSize, ArenaBounds.Bottom - y);
+                    DrawRectangle(new Rectangle(x, y, width, height), ArenaTile);
+                }
+            }
+        }
+
+        for (int x = ArenaBounds.Left + 96; x < ArenaBounds.Right; x += 96)
+            DrawRectangle(new Rectangle(x, ArenaBounds.Top, 2, ArenaBounds.Height), new Color(31, 48, 79));
+        for (int y = ArenaBounds.Top + 96; y < ArenaBounds.Bottom; y += 96)
+            DrawRectangle(new Rectangle(ArenaBounds.Left, y, ArenaBounds.Width, 2), new Color(31, 48, 79));
+
+        DrawBorder(ArenaBounds, 5, PanelMid);
+        Rectangle innerBorder = ArenaBounds;
+        innerBorder.Inflate(-5, -5);
+        DrawBorder(innerBorder, 2, Cyan);
+        DrawArenaCornerMarkers();
 
         if (_dangerTint > 0.01f)
-            DrawRectangle(ArenaBounds, new Color(120, 18, 28) * (_dangerTint * 0.16f));
+            DrawRectangle(ArenaBounds, Crimson * (_dangerTint * 0.15f));
     }
 
     private void DrawEntities()
     {
         foreach (PowerUp powerUp in _powerUps)
         {
-            DrawRectangle(powerUp.Bounds, new Color(50, 220, 110));
+            DrawPixelBox(powerUp.Bounds, new Color(55, 213, 117), new Color(163, 255, 188));
             Rectangle vertical = new(powerUp.Bounds.Center.X - 3, powerUp.Bounds.Top + 5, 6, powerUp.Size - 10);
             Rectangle horizontal = new(powerUp.Bounds.Left + 5, powerUp.Bounds.Center.Y - 3, powerUp.Size - 10, 6);
-            DrawRectangle(vertical, Color.White);
-            DrawRectangle(horizontal, Color.White);
+            DrawRectangle(vertical, SoftWhite);
+            DrawRectangle(horizontal, SoftWhite);
         }
 
         foreach (Projectile projectile in _projectiles)
-            DrawRectangle(projectile.Bounds, new Color(255, 220, 65));
+        {
+            Rectangle trail = new(projectile.Bounds.X + 3, projectile.Bounds.Y + 3,
+                projectile.Bounds.Width, projectile.Bounds.Height);
+            DrawRectangle(trail, new Color(135, 70, 28));
+            DrawRectangle(projectile.Bounds, Gold);
+            DrawBorder(projectile.Bounds, 2, new Color(255, 242, 164));
+        }
 
         foreach (Enemy enemy in _enemies)
         {
-            Color colour = enemy is TankEnemy ? new Color(155, 80, 210) : new Color(235, 65, 70);
+            bool isTank = enemy is TankEnemy;
+            Color colour = isTank ? new Color(146, 76, 210) : Crimson;
             if (enemy.HitFlash > 0f)
                 colour = Color.White;
-            DrawRectangle(enemy.Bounds, colour);
+            DrawPixelBox(enemy.Bounds, colour, isTank ? new Color(220, 151, 255) : new Color(255, 150, 132));
+            DrawEnemyDetails(enemy, isTank);
             DrawEnemyHealth(enemy);
         }
 
-        DrawRectangle(_player.Bounds, new Color(40, 160, 240));
+        DrawPixelBox(_player.Bounds, Blue, new Color(143, 224, 255));
+        Rectangle core = new(_player.Bounds.Center.X - 6, _player.Bounds.Center.Y - 6, 12, 12);
+        DrawRectangle(core, Cyan);
         DrawPlayerFacingIndicator();
     }
 
@@ -369,65 +412,84 @@ public sealed class Game1 : Game
         Rectangle indicator = Math.Abs(facing.X) > Math.Abs(facing.Y)
             ? new Rectangle((int)centre.X - 9, (int)centre.Y - 3, 18, 6)
             : new Rectangle((int)centre.X - 3, (int)centre.Y - 9, 6, 18);
-        DrawRectangle(indicator, new Color(160, 235, 255));
+        DrawRectangle(new Rectangle(indicator.X + 3, indicator.Y + 3, indicator.Width, indicator.Height), Shadow);
+        DrawRectangle(indicator, new Color(168, 241, 255));
     }
 
     private void DrawEnemyHealth(Enemy enemy)
     {
         int width = enemy.Bounds.Width;
-        Rectangle background = new(enemy.Bounds.Left, enemy.Bounds.Top - 7, width, 4);
+        Rectangle background = new(enemy.Bounds.Left, enemy.Bounds.Top - 9, width, 5);
         float percentage = enemy.Health / (float)enemy.MaximumHealth;
         Rectangle foreground = new(background.X, background.Y, (int)(background.Width * percentage), background.Height);
-        DrawRectangle(background, new Color(60, 20, 25));
-        DrawRectangle(foreground, new Color(90, 240, 120));
+        DrawRectangle(background, Shadow);
+        DrawRectangle(foreground, new Color(76, 230, 126));
     }
 
     private void DrawHud()
     {
-        DrawRectangle(new Rectangle(0, 0, ScreenWidth, 60), new Color(11, 19, 34));
-        _spriteBatch.DrawString(_font, $"SCORE  {_scoreManager.Score}", new Vector2(22, 18), Color.White);
-        _spriteBatch.DrawString(_font, $"HIGH  {_highScore}", new Vector2(190, 18), new Color(175, 195, 220));
-        _spriteBatch.DrawString(_font, $"WAVE  {_wave}", new Vector2(365, 18), new Color(255, 211, 75));
-        _spriteBatch.DrawString(_font, $"TIME  {(int)_elapsedSurvivalTime}s", new Vector2(500, 18), Color.White);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, 68), PanelDark);
+        DrawRectangle(new Rectangle(0, 64, ScreenWidth, 4), Cyan);
 
-        const int barWidth = 220;
-        Rectangle healthBackground = new(775, 18, barWidth, 22);
+        DrawStatPanel(new Rectangle(12, 10, 172, 44), $"SCORE {_scoreManager.Score}", Gold);
+        DrawStatPanel(new Rectangle(192, 10, 166, 44), $"HIGH {_highScore}", SoftWhite);
+        DrawStatPanel(new Rectangle(366, 10, 126, 44), $"WAVE {_wave}", Gold);
+        DrawStatPanel(new Rectangle(500, 10, 160, 44), $"TIME {(int)_elapsedSurvivalTime}s", SoftWhite);
+
+        Rectangle healthPanel = new(668, 10, 344, 44);
+        DrawPanel(healthPanel, PanelMid, Crimson);
+        Rectangle healthBackground = new(748, 20, 250, 24);
+        const int barWidth = 250;
         int healthWidth = (int)(barWidth * Math.Clamp(_displayedHealth / Player.MaximumHealth, 0f, 1f));
-        DrawRectangle(healthBackground, new Color(65, 24, 31));
+        DrawRectangle(healthBackground, new Color(66, 22, 38));
         DrawRectangle(new Rectangle(healthBackground.X, healthBackground.Y, healthWidth, healthBackground.Height),
-            _player.Health > 30 ? new Color(45, 210, 105) : new Color(245, 65, 65));
-        DrawBorder(healthBackground, 2, Color.White);
-        DrawCentredText($"HP {_player.Health}/{Player.MaximumHealth}", healthBackground, Color.White);
+            _player.Health > 30 ? new Color(55, 213, 117) : Crimson);
+        DrawBorder(healthBackground, 2, SoftWhite);
+        _spriteBatch.DrawString(_font, "HP", new Vector2(684, 21), Gold);
+        DrawCentredText($"{_player.Health}", healthBackground, SoftWhite);
 
         if (_statusTimer > 0f)
-            DrawCentredText(_statusMessage, new Rectangle(0, 80, ScreenWidth, 45), Color.Gold);
+        {
+            Rectangle statusPanel = new(ScreenWidth / 2 - 125, 88, 250, 42);
+            DrawPanel(statusPanel, PanelDark, Gold);
+            DrawCentredText(_statusMessage, statusPanel, Gold);
+        }
 
-        _spriteBatch.DrawString(_font, "MOVE: WASD / ARROWS     SHOOT: SPACE     ESC: QUIT",
-            new Vector2(22, ScreenHeight - 22), new Color(145, 165, 190));
+        Rectangle controlsPanel = new(188, 574, 648, 24);
+        DrawRectangle(controlsPanel, PanelDark);
+        DrawBorder(controlsPanel, 2, PanelMid);
+        DrawCentredText("MOVE: WASD / ARROWS   FIRE: SPACE   QUIT: ESC", controlsPanel, new Color(151, 181, 205));
     }
 
     private void DrawStartScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
-        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), new Color(6, 10, 20) * (0.78f * alpha));
-        DrawCentredText("ARENAMAXER", new Rectangle(0, 145, ScreenWidth, 60), new Color(65, 220, 225) * alpha);
-        DrawCentredText("Survive the arena. Defeat the swarm.", new Rectangle(0, 220, ScreenWidth, 40), Color.White * alpha);
-        DrawCentredText("Red: fast and weak    Purple: slow and strong    Green: health",
-            new Rectangle(0, 270, ScreenWidth, 40), new Color(190, 205, 225) * alpha);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Ink * (0.76f * alpha));
+        Rectangle menuPanel = new(178, 104, 668, 398);
+        DrawPanel(menuPanel, PanelDark * alpha, Cyan * alpha);
+        DrawRectangle(new Rectangle(190, 116, 644, 8), Gold * alpha);
+        DrawRectangle(new Rectangle(190, 482, 644, 8), Blue * alpha);
+
+        DrawCentredText("A R E N A M A X E R", new Rectangle(0, 150, ScreenWidth, 58), Cyan * alpha);
+        DrawCentredText("SURVIVE  /  SCORE  /  MAX OUT", new Rectangle(0, 210, ScreenWidth, 36), Gold * alpha);
+        DrawCentredText("RED  RUSHER    PURPLE  TANK    GREEN  MEDKIT",
+            new Rectangle(0, 270, ScreenWidth, 34), new Color(184, 204, 221) * alpha);
         DrawButton("PLAY", alpha);
-        DrawCentredText("Click Play or press Enter", new Rectangle(0, 425, ScreenWidth, 35),
-            new Color(160, 180, 205) * alpha);
+        DrawCentredText("CLICK PLAY OR PRESS ENTER", new Rectangle(0, 427, ScreenWidth, 32),
+            new Color(151, 181, 205) * alpha);
     }
 
     private void DrawGameOverScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
-        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * (0.72f * alpha));
-        DrawCentredText("GAME OVER", new Rectangle(0, 165, ScreenWidth, 60), new Color(255, 75, 80) * alpha);
-        DrawCentredText($"Final score: {_scoreManager.Score}    Survived: {(int)_elapsedSurvivalTime}s",
-            new Rectangle(0, 240, ScreenWidth, 45), Color.White * alpha);
-        DrawCentredText($"Highest score: {_highScore}", new Rectangle(0, 285, ScreenWidth, 40),
-            new Color(255, 215, 85) * alpha);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * (0.78f * alpha));
+        Rectangle gameOverPanel = new(208, 112, 608, 382);
+        DrawPanel(gameOverPanel, PanelDark * alpha, Crimson * alpha);
+        DrawRectangle(new Rectangle(220, 124, 584, 8), Crimson * alpha);
+        DrawCentredText("SYSTEM DOWN", new Rectangle(0, 165, ScreenWidth, 54), Crimson * alpha);
+        DrawCentredText($"SCORE {_scoreManager.Score}     TIME {(int)_elapsedSurvivalTime}s",
+            new Rectangle(0, 235, ScreenWidth, 38), SoftWhite * alpha);
+        DrawCentredText($"HIGH SCORE {_highScore}", new Rectangle(0, 280, ScreenWidth, 36), Gold * alpha);
         DrawButton("PLAY AGAIN", alpha);
     }
 
@@ -435,10 +497,71 @@ public sealed class Game1 : Game
     {
         MouseState mouse = Mouse.GetState();
         bool hovered = PlayButton.Contains(mouse.Position);
-        Color buttonColour = hovered ? new Color(45, 200, 205) : new Color(28, 135, 165);
-        DrawRectangle(PlayButton, buttonColour * alpha);
-        DrawBorder(PlayButton, 3, Color.White * alpha);
-        DrawCentredText(text, PlayButton, Color.White * alpha);
+        Color buttonColour = hovered ? Cyan : Blue;
+        DrawRectangle(new Rectangle(PlayButton.X + 7, PlayButton.Y + 7, PlayButton.Width, PlayButton.Height),
+            Shadow * alpha);
+        DrawRectangle(PlayButton, Gold * alpha);
+        Rectangle buttonInner = PlayButton;
+        buttonInner.Inflate(-4, -4);
+        DrawRectangle(buttonInner, buttonColour * alpha);
+        DrawBorder(buttonInner, 3, PanelDark * alpha);
+        DrawCentredText($"> {text} <", buttonInner, Color.White * alpha);
+    }
+
+    private void DrawStatPanel(Rectangle area, string text, Color accent)
+    {
+        DrawPanel(area, PanelMid, accent);
+        DrawCentredText(text, area, SoftWhite);
+    }
+
+    private void DrawPanel(Rectangle area, Color fill, Color accent)
+    {
+        DrawRectangle(new Rectangle(area.X + 4, area.Y + 4, area.Width, area.Height), Shadow);
+        DrawRectangle(area, accent);
+        Rectangle inner = area;
+        inner.Inflate(-3, -3);
+        DrawRectangle(inner, fill);
+        DrawBorder(inner, 2, PanelMid);
+    }
+
+    private void DrawPixelBox(Rectangle area, Color fill, Color highlight)
+    {
+        DrawRectangle(new Rectangle(area.X + 4, area.Y + 4, area.Width, area.Height), Shadow);
+        DrawRectangle(area, Ink);
+        Rectangle inner = area;
+        inner.Inflate(-3, -3);
+        DrawRectangle(inner, fill);
+        DrawRectangle(new Rectangle(inner.X, inner.Y, inner.Width, 3), highlight);
+        DrawRectangle(new Rectangle(inner.X, inner.Y, 3, inner.Height), highlight);
+    }
+
+    private void DrawEnemyDetails(Enemy enemy, bool isTank)
+    {
+        Rectangle bounds = enemy.Bounds;
+        if (isTank)
+        {
+            DrawRectangle(new Rectangle(bounds.Left + 8, bounds.Top + 12, bounds.Width - 16, 7), Ink);
+            DrawRectangle(new Rectangle(bounds.Left + 8, bounds.Bottom - 19, bounds.Width - 16, 7), Ink);
+        }
+        else
+        {
+            DrawRectangle(new Rectangle(bounds.Center.X - 9, bounds.Center.Y - 3, 5, 5), Gold);
+            DrawRectangle(new Rectangle(bounds.Center.X + 4, bounds.Center.Y - 3, 5, 5), Gold);
+        }
+    }
+
+    private void DrawArenaCornerMarkers()
+    {
+        const int length = 20;
+        const int thickness = 4;
+        DrawRectangle(new Rectangle(ArenaBounds.Left + 8, ArenaBounds.Top + 8, length, thickness), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Left + 8, ArenaBounds.Top + 8, thickness, length), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Right - 8 - length, ArenaBounds.Top + 8, length, thickness), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Right - 12, ArenaBounds.Top + 8, thickness, length), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Left + 8, ArenaBounds.Bottom - 12, length, thickness), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Left + 8, ArenaBounds.Bottom - 8 - length, thickness, length), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Right - 8 - length, ArenaBounds.Bottom - 12, length, thickness), Gold);
+        DrawRectangle(new Rectangle(ArenaBounds.Right - 12, ArenaBounds.Bottom - 8 - length, thickness, length), Gold);
     }
 
     private void DrawCentredText(string text, Rectangle area, Color colour)

@@ -1,66 +1,73 @@
 # ArenaMaxer
 
-ArenaMaxer is a top-down 2D survival game built with C# and MonoGame. The
-player must survive increasingly difficult waves, defeat two enemy types, collect
-health power-ups, and achieve the highest possible score.
+ArenaMaxer is a fast-paced 2D survival game built with C# and MonoGame. Defend
+the arena against an escalating enemy swarm, collect health power-ups, and chase
+a new high score.
 
-Version 1 deliberately uses clean geometric placeholder graphics. These can be
-replaced with animated sprites later without changing the tested gameplay logic.
+## Gameplay
 
-## Features
+Two enemy classes create different threats:
 
-- Start screen with a clickable Play button
-- WASD and arrow-key movement
-- Directional projectile attacks
-- Fast Rusher enemies and durable Tank enemies
-- Continuous spawning with wave-based difficulty scaling
-- Player health and animated health bar
-- Health power-ups
-- Score rewards for enemy defeats, pickups, and survival
-- Persistent local high score with safe file-error handling
-- Game Over screen and restart
-- Practical use of distance, vectors, algebra, dot product, cross product, and Lerp
-- Separate NUnit project containing 23 automated tests
+- **Rushers** are quick, fragile, and dangerous in groups.
+- **Tanks** move slowly but absorb three shots and inflict heavy contact damage.
 
-## How to play
+Enemy numbers and composition scale as the survival timer advances. Points are
+awarded for defeating enemies, collecting power-ups, and surviving each second.
+The highest score is saved locally between sessions.
 
-- **Move:** WASD or Arrow Keys
-- **Shoot:** Space
-- **Start/restart:** Click Play or press Enter
-- **Quit:** Escape
+## Controls
 
-The player shoots in the last movement direction. Red Rushers are fast but weak.
-Purple Tanks are slower, deal more damage, and require three hits. Green power-ups
-restore health.
+| Action | Input |
+|---|---|
+| Move | WASD or Arrow Keys |
+| Shoot | Space |
+| Start / restart | Enter or Play button |
+| Quit | Escape |
 
-## How to run
+The player fires in the last movement direction. Green power-ups restore health.
 
-Requirements:
+## Running the game
+
+### Requirements
 
 - .NET SDK 9 or newer
 - A desktop environment supported by MonoGame DesktopGL
 
-From this repository's solution folder:
+Clone the repository and run:
 
 ```bash
 dotnet restore
 dotnet run --project ArenaMaxer/ArenaMaxer.csproj
 ```
 
-## How to run the tests
+In Visual Studio Code, open the repository folder and select
+**Run and Debug → Run ArenaMaxer**.
+
+## Automated tests
+
+The separate NUnit project tests health, damage, movement, projectiles, collision
+helpers, scoring, enemy durability, power-ups, vector mathematics, and difficulty
+scaling.
 
 ```bash
 dotnet test ArenaMaxer.slnx
 ```
 
-Current result: **23 passed, 0 failed**.
+Current result: **24 passed, 0 failed**.
 
-## Project documentation
+## Technical highlights
+
+- Object-oriented enemy hierarchy with `RusherEnemy` and `TankEnemy`
+- Testable gameplay logic separated from MonoGame rendering
+- Vector-based player, enemy, and projectile movement
+- Distance-based detection and collection
+- Dot-product facing checks and cross-product steering
+- Linear interpolation for health, danger, and screen transitions
+- Wave-based algebraic difficulty scaling
+- Defensive validation and high-score file exception handling
+- XML documentation embedded in the C# source
+
+## Documentation
 
 - [Application Design Document](docs/APPLICATION_DESIGN.md)
 - [Testing Strategy](docs/TESTING_STRATEGY.md)
-- [Submission Checklist](docs/SUBMISSION_CHECKLIST.md)
-
-Important classes and public methods include XML documentation comments embedded
-directly in the C# source. XML documentation-file generation is enabled in the
-main project configuration.

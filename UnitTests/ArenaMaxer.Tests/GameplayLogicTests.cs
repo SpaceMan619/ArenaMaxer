@@ -34,9 +34,9 @@ public sealed class GameplayLogicTests
     }
 
     [TestCase(0f, 1)]
-    [TestCase(19.99f, 1)]
-    [TestCase(20f, 2)]
-    [TestCase(60f, 4)]
+    [TestCase(24.99f, 1)]
+    [TestCase(25f, 2)]
+    [TestCase(75f, 4)]
     public void WaveForTime_CalculatesExpectedWave(float elapsedSeconds, int expectedWave)
     {
         Assert.That(DifficultyCalculator.WaveForTime(elapsedSeconds), Is.EqualTo(expectedWave));
@@ -53,6 +53,16 @@ public sealed class GameplayLogicTests
         {
             Assert.That(waveFive, Is.LessThan(waveOne));
             Assert.That(waveOneHundred, Is.EqualTo(DifficultyCalculator.MinimumSpawnInterval));
+        });
+    }
+
+    [Test]
+    public void GameplayDifficulty_ReducesEnemySpeedAndDamageByTwentyPercent()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(DifficultyCalculator.EnemySpeed(100f), Is.EqualTo(80f));
+            Assert.That(DifficultyCalculator.ContactDamage(25), Is.EqualTo(20));
         });
     }
 
