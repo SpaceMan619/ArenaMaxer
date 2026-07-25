@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ArenaMaxer/ArenaMaxer.csproj" />
+  <Project Path="UnitTests/ArenaMaxer.Tests/ArenaMaxer.Tests.csproj" />
+</Solution>

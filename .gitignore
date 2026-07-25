@@ -1,0 +1,22 @@
+# .NET and MonoGame build output
+bin/
+obj/
+.vs/
+
+# IDE and operating-system files
+.vscode/*
+!.vscode/launch.json
+.idea/
+.DS_Store
+*.user
+*.suo
+
+# Test output
+TestResults/
+coverage/
+
+# Local game data
+highscore.txt
+
+# Machine-generated local tooling data
+Library/
