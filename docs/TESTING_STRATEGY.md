@@ -26,6 +26,7 @@ that do not require a graphics device.
 | Difficulty | Wave timing, decreasing spawn interval, minimum limit |
 | Score | Kill, pickup, and survival rewards |
 | Power-ups | Correct healing effect |
+| Audio timing | Menu/gameplay boundary and clamped fade interpolation |
 
 ## 3. Edge cases
 
@@ -59,7 +60,7 @@ dotnet test ArenaMaxer.slnx
 Latest verified result:
 
 ```text
-Passed: 24
+Passed: 29
 Failed: 0
 Skipped: 0
 ```

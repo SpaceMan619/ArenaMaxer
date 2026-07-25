@@ -4,6 +4,8 @@ ArenaMaxer is a fast-paced 2D survival game built with C# and MonoGame. Defend
 the arena against an escalating enemy swarm, collect health power-ups, and chase
 a new high score.
 
+Current release: **v0.5**
+
 ## Gameplay
 
 Two enemy classes create different threats:
@@ -53,7 +55,7 @@ scaling.
 dotnet test ArenaMaxer.slnx
 ```
 
-Current result: **24 passed, 0 failed**.
+Current result: **29 passed, 0 failed**.
 
 ## Technical highlights
 
@@ -65,6 +67,8 @@ Current result: **24 passed, 0 failed**.
 - Linear interpolation for health, danger, and screen transitions
 - Wave-based algebraic difficulty scaling
 - Defensive validation and high-score file exception handling
+- Section-based soundtrack playback with timed fades and looping
+- Original code-generated pulse/noise arcade sound effects
 - XML documentation embedded in the C# source
 
 ## Documentation

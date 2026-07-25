@@ -39,6 +39,8 @@ public sealed class Game1 : Game
     private SpriteBatch _spriteBatch = null!;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
+    private ArcadeSoundBank _sounds = null!;
+    private MusicController _music = null!;
     private Player _player = null!;
     private GameState _state = GameState.Start;
     private KeyboardState _previousKeyboard;
@@ -65,7 +67,7 @@ public sealed class Game1 : Game
         };
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
-        Window.Title = "ArenaMaxer";
+        Window.Title = "ArenaMaxer v0.5";
     }
 
     protected override void LoadContent()
@@ -74,6 +76,10 @@ public sealed class Game1 : Game
         _font = Content.Load<SpriteFont>("DefaultFont");
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
+        _sounds = new ArcadeSoundBank();
+        _music = new MusicController();
+        if (_music.TryLoad(GetMusicPath()))
+            _music.StartMenu();
 
         string highScorePath = GetHighScorePath();
         _highScore = HighScoreStorage.Load(highScorePath);
@@ -104,6 +110,7 @@ public sealed class Game1 : Game
                     ResetGame();
                     _state = GameState.Playing;
                     _screenFade = 0f;
+                    _music.StartGameplay();
                 }
                 break;
             case GameState.Playing:
@@ -116,9 +123,12 @@ public sealed class Game1 : Game
                     ResetGame();
                     _state = GameState.Playing;
                     _screenFade = 0f;
+                    _music.StartGameplay();
                 }
                 break;
         }
+
+        _music.Update(deltaTime);
 
         _previousKeyboard = keyboard;
         _previousMouse = mouse;
@@ -134,6 +144,7 @@ public sealed class Game1 : Game
             _wave = newWave;
             _statusMessage = $"WAVE {_wave}";
             _statusTimer = 2f;
+            _sounds.PlayWaveStart();
         }
 
         Vector2 movement = ReadMovement(keyboard);
@@ -142,7 +153,10 @@ public sealed class Game1 : Game
 
         bool shootPressed = IsNewKeyPress(keyboard, Keys.Space);
         if (shootPressed && _player.TryShoot())
+        {
             _projectiles.Add(new Projectile(_player.Position, _player.FacingDirection));
+            _sounds.PlayFire();
+        }
 
         UpdateSpawning(deltaTime);
 
@@ -228,6 +242,11 @@ public sealed class Game1 : Game
                 {
                     _scoreManager.AddEnemyDefeat(enemy.ScoreValue);
                     _enemies.RemoveAt(enemyIndex);
+                    _sounds.PlayEnemyDefeat();
+                }
+                else
+                {
+                    _sounds.PlayEnemyHit();
                 }
                 break;
             }
@@ -244,6 +263,7 @@ public sealed class Game1 : Game
 
             _player.TakeDamage(enemy.ContactDamage);
             _enemies.RemoveAt(enemyIndex);
+            _sounds.PlayPlayerDamage();
             _statusMessage = $"-{enemy.ContactDamage} HEALTH";
             _statusTimer = 0.8f;
         }
@@ -258,6 +278,7 @@ public sealed class Game1 : Game
             powerUp.ApplyTo(_player);
             _scoreManager.AddPowerUpPickup();
             _powerUps.RemoveAt(powerUpIndex);
+            _sounds.PlayPickup();
             _statusMessage = "+HEALTH";
             _statusTimer = 1.2f;
         }
@@ -286,6 +307,8 @@ public sealed class Game1 : Game
     {
         _state = GameState.GameOver;
         _screenFade = 0f;
+        _sounds.PlayGameOver();
+        _music.EnterGameOver();
         if (_scoreManager.Score > _highScore)
         {
             _highScore = _scoreManager.Score;
@@ -431,10 +454,10 @@ public sealed class Game1 : Game
         DrawRectangle(new Rectangle(0, 0, ScreenWidth, 68), PanelDark);
         DrawRectangle(new Rectangle(0, 64, ScreenWidth, 4), Cyan);
 
-        DrawStatPanel(new Rectangle(12, 10, 172, 44), $"SCORE {_scoreManager.Score}", Gold);
-        DrawStatPanel(new Rectangle(192, 10, 166, 44), $"HIGH {_highScore}", SoftWhite);
-        DrawStatPanel(new Rectangle(366, 10, 126, 44), $"WAVE {_wave}", Gold);
-        DrawStatPanel(new Rectangle(500, 10, 160, 44), $"TIME {(int)_elapsedSurvivalTime}s", SoftWhite);
+        DrawStatPanel(new Rectangle(12, 10, 172, 44), "SCORE", _scoreManager.Score.ToString(), Gold);
+        DrawStatPanel(new Rectangle(192, 10, 166, 44), "HIGH", _highScore.ToString(), SoftWhite);
+        DrawStatPanel(new Rectangle(366, 10, 126, 44), "WAVE", _wave.ToString(), Gold);
+        DrawStatPanel(new Rectangle(500, 10, 160, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite);
 
         Rectangle healthPanel = new(668, 10, 344, 44);
         DrawPanel(healthPanel, PanelMid, Crimson);
@@ -455,10 +478,14 @@ public sealed class Game1 : Game
             DrawCentredText(_statusMessage, statusPanel, Gold);
         }
 
-        Rectangle controlsPanel = new(188, 574, 648, 24);
+        Rectangle controlsPanel = new(132, 570, 760, 28);
         DrawRectangle(controlsPanel, PanelDark);
         DrawBorder(controlsPanel, 2, PanelMid);
-        DrawCentredText("MOVE: WASD / ARROWS   FIRE: SPACE   QUIT: ESC", controlsPanel, new Color(151, 181, 205));
+        DrawControlHint(new Rectangle(144, 572, 330, 24), "MOVE", "WASD / ARROWS");
+        DrawRectangle(new Rectangle(480, 575, 2, 18), PanelMid);
+        DrawControlHint(new Rectangle(490, 572, 210, 24), "FIRE", "SPACE");
+        DrawRectangle(new Rectangle(706, 575, 2, 18), PanelMid);
+        DrawControlHint(new Rectangle(716, 572, 164, 24), "QUIT", "ESC");
     }
 
     private void DrawStartScreen()
@@ -477,6 +504,7 @@ public sealed class Game1 : Game
         DrawButton("PLAY", alpha);
         DrawCentredText("CLICK PLAY OR PRESS ENTER", new Rectangle(0, 427, ScreenWidth, 32),
             new Color(151, 181, 205) * alpha);
+        DrawCentredText("VERSION 0.5", new Rectangle(700, 463, 126, 24), Gold * alpha);
     }
 
     private void DrawGameOverScreen()
@@ -487,9 +515,9 @@ public sealed class Game1 : Game
         DrawPanel(gameOverPanel, PanelDark * alpha, Crimson * alpha);
         DrawRectangle(new Rectangle(220, 124, 584, 8), Crimson * alpha);
         DrawCentredText("SYSTEM DOWN", new Rectangle(0, 165, ScreenWidth, 54), Crimson * alpha);
-        DrawCentredText($"SCORE {_scoreManager.Score}     TIME {(int)_elapsedSurvivalTime}s",
-            new Rectangle(0, 235, ScreenWidth, 38), SoftWhite * alpha);
-        DrawCentredText($"HIGH SCORE {_highScore}", new Rectangle(0, 280, ScreenWidth, 36), Gold * alpha);
+        DrawStatPanel(new Rectangle(314, 235, 190, 44), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(520, 235, 190, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(390, 292, 244, 44), "HIGH", _highScore.ToString(), Gold * alpha);
         DrawButton("PLAY AGAIN", alpha);
     }
 
@@ -508,10 +536,25 @@ public sealed class Game1 : Game
         DrawCentredText($"> {text} <", buttonInner, Color.White * alpha);
     }
 
-    private void DrawStatPanel(Rectangle area, string text, Color accent)
+    private void DrawStatPanel(Rectangle area, string label, string value, Color accent)
     {
         DrawPanel(area, PanelMid, accent);
-        DrawCentredText(text, area, SoftWhite);
+        Vector2 labelSize = _font.MeasureString(label);
+        Vector2 valueSize = _font.MeasureString(value);
+        float textY = area.Y + (area.Height - Math.Max(labelSize.Y, valueSize.Y)) / 2f;
+        _spriteBatch.DrawString(_font, label, new Vector2(area.X + 12, textY), accent);
+        _spriteBatch.DrawString(_font, value, new Vector2(area.Right - 12 - valueSize.X, textY), SoftWhite);
+    }
+
+    private void DrawControlHint(Rectangle area, string label, string value)
+    {
+        Vector2 labelSize = MeasureSpacedText(label);
+        Vector2 valueSize = MeasureSpacedText(value);
+        float totalWidth = labelSize.X + 18f + valueSize.X;
+        float x = area.X + (area.Width - totalWidth) / 2f;
+        float y = area.Y + (area.Height - Math.Max(labelSize.Y, valueSize.Y)) / 2f;
+        DrawSpacedText(label, new Vector2(x, y), Gold);
+        DrawSpacedText(value, new Vector2(x + labelSize.X + 18f, y), new Color(151, 181, 205));
     }
 
     private void DrawPanel(Rectangle area, Color fill, Color accent)
@@ -566,11 +609,41 @@ public sealed class Game1 : Game
 
     private void DrawCentredText(string text, Rectangle area, Color colour)
     {
-        Vector2 size = _font.MeasureString(text);
+        Vector2 textSize = MeasureSpacedText(text);
         Vector2 position = new(
-            area.X + (area.Width - size.X) / 2f,
-            area.Y + (area.Height - size.Y) / 2f);
-        _spriteBatch.DrawString(_font, text, position, colour);
+            area.X + (area.Width - textSize.X) / 2f,
+            area.Y + (area.Height - textSize.Y) / 2f);
+        DrawSpacedText(text, position, colour);
+    }
+
+    private Vector2 MeasureSpacedText(string text)
+    {
+        string[] words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0)
+            return Vector2.Zero;
+
+        const float wordGap = 12f;
+        float textWidth = 0f;
+        float textHeight = 0f;
+        foreach (string word in words)
+        {
+            Vector2 wordSize = _font.MeasureString(word);
+            textWidth += wordSize.X;
+            textHeight = Math.Max(textHeight, wordSize.Y);
+        }
+        textWidth += wordGap * (words.Length - 1);
+        return new Vector2(textWidth, textHeight);
+    }
+
+    private void DrawSpacedText(string text, Vector2 position, Color colour)
+    {
+        string[] words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        const float wordGap = 12f;
+        foreach (string word in words)
+        {
+            _spriteBatch.DrawString(_font, word, position, colour);
+            position.X += _font.MeasureString(word).X + wordGap;
+        }
     }
 
     private void DrawRectangle(Rectangle rectangle, Color colour) =>
@@ -607,5 +680,23 @@ public sealed class Game1 : Game
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ArenaMaxer");
         return Path.Combine(directory, "highscore.txt");
+    }
+
+    private static string GetMusicPath() => Path.Combine(
+        AppContext.BaseDirectory,
+        "Content",
+        "Audio",
+        "ThemeMusic.mp3");
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _music?.Dispose();
+            _sounds?.Dispose();
+            _pixel?.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 }

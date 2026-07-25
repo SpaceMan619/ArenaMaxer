@@ -18,5 +18,8 @@ coverage/
 # Local game data
 highscore.txt
 
+# Locally supplied music awaiting verified redistribution rights
+ArenaMaxer/LocalAudio/*.mp3
+
 # Machine-generated local tooling data
 Library/

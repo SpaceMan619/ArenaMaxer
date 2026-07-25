@@ -35,6 +35,8 @@ Game1
 ├── DifficultyCalculator
 ├── CollisionHelper
 ├── MathUtilities
+├── MusicController
+├── ArcadeSoundBank
 └── HighScoreStorage
 ```
 
@@ -75,6 +77,8 @@ loops.
 - `DifficultyCalculator`: wave and spawn formulas
 - `ScoreManager`: score rules
 - `HighScoreStorage`: safe file persistence
+- `MusicController`: soundtrack sections, transitions, fades, and looping
+- `ArcadeSoundBank`: original generated arcade feedback effects
 
 ### Open/closed design
 
@@ -184,3 +188,13 @@ I/O errors without crashing the game.
 Version 2 can introduce directional player sprites and two-frame walking
 animations. Entity dimensions and collision rectangles already exist separately
 from textures, so graphics can be replaced while retaining consistent gameplay.
+
+## 10. Audio design
+
+The soundtrack controller treats 0:00–0:39 as the menu section. Starting play
+jumps to 0:39 and fades to gameplay volume over 3.5 seconds. When the track ends,
+gameplay restarts at 0:39 so the menu section is not repeated during a run.
+
+Shooting, impact, defeat, damage, pickup, wave, and Game Over effects are generated
+from short pulse, triangle, and noise voices. This produces consistent arcade
+feedback without relying on third-party sound-effect files.
