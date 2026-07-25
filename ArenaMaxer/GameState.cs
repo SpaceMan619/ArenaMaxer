@@ -7,6 +7,7 @@ public enum GameState
     Playing,
     UpgradeSelection,
     BossBattle,
+    Paused,
     GameOver,
     Victory
 }

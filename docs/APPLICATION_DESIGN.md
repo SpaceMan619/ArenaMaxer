@@ -74,7 +74,7 @@ loops.
 - `Player`: player state and movement
 - `Enemy`: shared enemy state and steering
 - `Projectile`: projectile movement and lifetime
-- `EnemyProjectile`: blockable boss projectile movement and lifetime
+- `EnemyProjectile`: dodge-only boss projectile movement and lifetime
 - `PowerUp`: collectible effect
 - `CollisionHelper`: collision and pickup-range checks
 - `MathUtilities`: reusable vector calculations

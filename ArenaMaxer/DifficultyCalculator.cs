@@ -13,6 +13,7 @@ public static class DifficultyCalculator
     public const float MinimumSpawnInterval = 0.475f;
 
     /// <summary>Returns the number of enemies that must be removed to clear a wave.</summary>
+    // this starts manageable and gets four enemies heavier each wave.
     public static int EnemiesRequiredForWave(int wave) =>
         11 + Math.Max(1, wave) * 4;
 
@@ -22,6 +23,7 @@ public static class DifficultyCalculator
 
     public static float SpawnInterval(int wave)
     {
+        // the lower limit stops later waves from becoming impossible.
         int safeWave = Math.Max(1, wave);
         float originalInterval = 1.35f - (safeWave - 1) * 0.11f;
         return Math.Max(MinimumSpawnInterval, originalInterval / GameplayDifficulty);

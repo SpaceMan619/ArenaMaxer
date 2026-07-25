@@ -19,6 +19,8 @@ public sealed class Game1 : Game
     private static readonly Rectangle ArenaBounds = new(20, 76, ScreenWidth - 40, ScreenHeight - 108);
     private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 355, 220, 58);
     private static readonly Rectangle VictoryPlayButton = new(ScreenWidth / 2 - 110, 430, 220, 58);
+    private static readonly Rectangle PauseResumeButton = new(ScreenWidth / 2 - 110, 314, 220, 58);
+    private static readonly Rectangle PauseMenuButton = new(ScreenWidth / 2 - 110, 388, 220, 58);
     private static readonly Rectangle HealthUpgradeCard = new(92, 226, 260, 210);
     private static readonly Rectangle DoubleShotUpgradeCard = new(382, 226, 260, 210);
     private static readonly Rectangle DamageUpgradeCard = new(672, 226, 260, 210);
@@ -50,6 +52,7 @@ public sealed class Game1 : Game
     private Player _player = null!;
     private BossEnemy _boss = null!;
     private GameState _state = GameState.Start;
+    private GameState _stateBeforePause = GameState.Playing;
     private KeyboardState _previousKeyboard;
     private MouseState _previousMouse;
     private float _spawnTimer;
@@ -105,19 +108,21 @@ public sealed class Game1 : Game
         MouseState mouse = Mouse.GetState();
         float deltaTime = Math.Min((float)gameTime.ElapsedGameTime.TotalSeconds, 0.05f);
 
-        if (keyboard.IsKeyDown(Keys.Escape))
-            Exit();
-
         bool enterPressed = IsNewKeyPress(keyboard, Keys.Enter);
+        bool escapePressed = IsNewKeyPress(keyboard, Keys.Escape);
         Rectangle activeButton = _state == GameState.Victory ? VictoryPlayButton : PlayButton;
-        bool clickedPlay = mouse.LeftButton == ButtonState.Pressed
-            && _previousMouse.LeftButton == ButtonState.Released
-            && activeButton.Contains(mouse.Position);
+        bool clicked = mouse.LeftButton == ButtonState.Pressed
+            && _previousMouse.LeftButton == ButtonState.Released;
+        bool clickedPlay = clicked && activeButton.Contains(mouse.Position);
+        bool clickedResume = clicked && PauseResumeButton.Contains(mouse.Position);
+        bool clickedMenu = clicked && PauseMenuButton.Contains(mouse.Position);
 
         switch (_state)
         {
             case GameState.Start:
                 _screenFade = MathHelper.Lerp(_screenFade, 1f, 5f * deltaTime);
+                if (escapePressed)
+                    Exit();
                 if (enterPressed || clickedPlay)
                 {
                     ResetGame();
@@ -127,18 +132,36 @@ public sealed class Game1 : Game
                 }
                 break;
             case GameState.Playing:
-                UpdatePlaying(deltaTime, keyboard);
+                if (escapePressed)
+                    PauseGame();
+                else
+                    UpdatePlaying(deltaTime, keyboard);
                 break;
             case GameState.UpgradeSelection:
-                UpdateUpgradeSelection(deltaTime, keyboard, mouse);
+                if (escapePressed)
+                    PauseGame();
+                else
+                    UpdateUpgradeSelection(deltaTime, keyboard, mouse);
                 break;
             case GameState.BossBattle:
-                UpdateBossBattle(deltaTime, keyboard);
+                if (escapePressed)
+                    PauseGame();
+                else
+                    UpdateBossBattle(deltaTime, keyboard);
+                break;
+            case GameState.Paused:
+                _screenFade = MathHelper.Lerp(_screenFade, 1f, 5f * deltaTime);
+                if (escapePressed || enterPressed || clickedResume)
+                    ResumeGame();
+                else if (clickedMenu)
+                    ReturnToMainMenu();
                 break;
             case GameState.GameOver:
             case GameState.Victory:
                 _screenFade = MathHelper.Lerp(_screenFade, 1f, 4f * deltaTime);
-                if (enterPressed || clickedPlay)
+                if (escapePressed)
+                    ReturnToMainMenu();
+                else if (enterPressed || clickedPlay)
                 {
                     ResetGame();
                     _state = GameState.Playing;
@@ -153,6 +176,30 @@ public sealed class Game1 : Game
         _previousKeyboard = keyboard;
         _previousMouse = mouse;
         base.Update(gameTime);
+    }
+
+    private void PauseGame()
+    {
+        // keep the exact game state so resume returns to the right place.
+        _stateBeforePause = _state;
+        _state = GameState.Paused;
+        _screenFade = 0f;
+        _music.Pause();
+    }
+
+    private void ResumeGame()
+    {
+        _state = _stateBeforePause;
+        _screenFade = 0f;
+        _music.Resume();
+    }
+
+    private void ReturnToMainMenu()
+    {
+        ResetGame();
+        _state = GameState.Start;
+        _screenFade = 0f;
+        _music.StartMenu();
     }
 
     private void UpdatePlaying(float deltaTime, KeyboardState keyboard)
@@ -180,6 +227,7 @@ public sealed class Game1 : Game
             _enemies.Count,
             DifficultyCalculator.EnemiesRequiredForWave(_wave)))
         {
+            // wave four leads to boss prep instead of another normal wave.
             BeginUpgradeSelection(_wave == FinalBossWave - 1);
             return;
         }
@@ -199,6 +247,7 @@ public sealed class Game1 : Game
 
     private void BeginUpgradeSelection(bool isBossPreparation)
     {
+        // gameplay stops here so the player can choose without taking damage.
         _state = GameState.UpgradeSelection;
         _isBossPreparation = isBossPreparation;
         _screenFade = 0f;
@@ -238,6 +287,7 @@ public sealed class Game1 : Game
         _player.ApplyUpgrade(upgrade);
         if (_isBossPreparation)
         {
+            // boss prep skips normal spawning and starts the final encounter.
             _wave = FinalBossWave;
             _boss = new BossEnemy(new Vector2(ScreenWidth / 2f, ArenaBounds.Top + 90f));
             _enemyProjectiles.Clear();
@@ -272,6 +322,7 @@ public sealed class Game1 : Game
         if (_spawnTimer <= 0f
             && _enemiesSpawnedThisWave < DifficultyCalculator.EnemiesRequiredForWave(_wave))
         {
+            // the quota check makes sure a wave only contains its planned enemies.
             _spawnNumber++;
             _enemiesSpawnedThisWave++;
             _enemies.Add(CreateEnemy(_spawnNumber));
@@ -305,6 +356,7 @@ public sealed class Game1 : Game
         _boss.Update(_player.Position, deltaTime);
         if (_boss.TryFire(deltaTime))
         {
+            // purple boss shots are dodge-only; player bullets cannot remove them.
             Vector2 direction = MathUtilities.Direction(_boss.Position, _player.Position);
             if (direction != Vector2.Zero)
             {
@@ -315,6 +367,7 @@ public sealed class Game1 : Game
 
         if (_boss.TrySpawnMinions(deltaTime))
         {
+            // rusher pairs force the player to divide attention during the boss fight.
             for (int count = 0; count < BossEnemy.MinionsPerSpawn; count++)
                 _enemies.Add(new RusherEnemy(RandomEdgePosition()));
             _statusMessage = "RUSHER REINFORCEMENTS";
@@ -384,6 +437,7 @@ public sealed class Game1 : Game
     {
         for (int projectileIndex = _projectiles.Count - 1; projectileIndex >= 0; projectileIndex--)
         {
+            // work backwards because a hit can remove this projectile from the list.
             Projectile projectile = _projectiles[projectileIndex];
             bool projectileHit = false;
 
@@ -448,6 +502,7 @@ public sealed class Game1 : Game
 
         for (int projectileIndex = _projectiles.Count - 1; projectileIndex >= 0; projectileIndex--)
         {
+            // boss shots only collide with the player, not with player bullets.
             Projectile playerProjectile = _projectiles[projectileIndex];
             if (!CollisionHelper.Intersects(playerProjectile.Bounds, _boss.Bounds))
                 continue;
@@ -466,6 +521,7 @@ public sealed class Game1 : Game
         _bossContactCooldown = Math.Max(0f, _bossContactCooldown - deltaTime);
         if (_bossContactCooldown <= 0f && CollisionHelper.Intersects(_player.Bounds, _boss.Bounds))
         {
+            // contact has a short cooldown so touching the boss is not instant death.
             _player.TakeDamage(_boss.ContactDamage);
             _bossContactCooldown = 1f;
             _sounds.PlayPlayerDamage();
@@ -581,6 +637,8 @@ public sealed class Game1 : Game
                 DrawGameOverScreen();
             else if (_state == GameState.Victory)
                 DrawVictoryScreen();
+            else if (_state == GameState.Paused)
+                DrawPauseScreen();
             else if (_state == GameState.UpgradeSelection)
                 DrawUpgradeSelectionScreen();
         }
@@ -747,7 +805,7 @@ public sealed class Game1 : Game
         DrawRectangle(new Rectangle(480, 575, 2, 18), PanelMid);
         DrawControlHint(new Rectangle(490, 572, 210, 24), "FIRE", "SPACE");
         DrawRectangle(new Rectangle(706, 575, 2, 18), PanelMid);
-        DrawControlHint(new Rectangle(716, 572, 164, 24), "QUIT", "ESC");
+        DrawControlHint(new Rectangle(716, 572, 164, 24), "PAUSE", "ESC");
     }
 
     private void DrawUpgradeSelectionScreen()
@@ -831,6 +889,22 @@ public sealed class Game1 : Game
         DrawStatPanel(new Rectangle(520, 235, 190, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
         DrawStatPanel(new Rectangle(390, 292, 244, 44), "HIGH", _highScore.ToString(), Gold * alpha);
         DrawButton("PLAY AGAIN", alpha);
+    }
+
+    private void DrawPauseScreen()
+    {
+        float alpha = Math.Clamp(_screenFade, 0f, 1f);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * (0.72f * alpha));
+        Rectangle panel = new(282, 138, 460, 344);
+        DrawPanel(panel, PanelDark * alpha, Cyan * alpha);
+        DrawRectangle(new Rectangle(294, 150, 436, 8), Gold * alpha);
+        DrawCentredText("SYSTEM PAUSED", new Rectangle(0, 190, ScreenWidth, 48), Cyan * alpha);
+        DrawCentredText("MUSIC AND GAMEPLAY ARE ON HOLD", new Rectangle(0, 242, ScreenWidth, 28),
+            SoftWhite * alpha);
+        DrawButton("RESUME", alpha, PauseResumeButton);
+        DrawButton("MAIN MENU", alpha, PauseMenuButton);
+        DrawCentredText("ESC OR ENTER TO RESUME", new Rectangle(0, 456, ScreenWidth, 24),
+            new Color(151, 181, 205) * alpha);
     }
 
     private void DrawVictoryScreen()

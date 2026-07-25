@@ -46,6 +46,7 @@ public abstract class Enemy
             return;
 
         Vector2 desiredDirection = MathUtilities.Direction(Position, playerPosition);
+        // dot says how aligned the enemy is; cross says which side the player is on.
         float alignment = MathUtilities.Dot(Forward, desiredDirection);
         float turnSide = MathUtilities.Cross(Forward, desiredDirection);
         float maximumTurn = alignment < 0f ? 4.5f * deltaTime : 7f * deltaTime;

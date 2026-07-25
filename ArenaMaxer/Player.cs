@@ -42,6 +42,7 @@ public sealed class Player
     {
         if (input != Vector2.Zero)
         {
+            // normalize first so diagonal movement is not faster than straight movement.
             input.Normalize();
             FacingDirection = input;
             Position += input * MovementSpeed * Math.Max(deltaTime, 0f);
@@ -59,6 +60,7 @@ public sealed class Player
     /// <summary>Returns true only when a shot is allowed, then begins the cooldown.</summary>
     public bool TryShoot()
     {
+        // the cooldown keeps one key press from becoming a wall of bullets.
         if (_shotTimer > 0f || !IsAlive)
             return false;
 

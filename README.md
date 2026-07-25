@@ -1,5 +1,12 @@
 # ArenaMaxer
 
+```text
+      .-=-=-=-=-=-=-=-=-=-.
+       A R E N A M A X E R
+      '-=-=-=-=-=-=-=-=-=-'
+          SURVIVE. ADAPT. WIN.
+```
+
 ArenaMaxer is a fast-paced 2D survival game built with C# and MonoGame. Defend
 the arena against an escalating enemy swarm, collect health power-ups, and chase
 a new high score.
@@ -28,9 +35,10 @@ between sessions.
 |---|---|
 | Move | WASD or Arrow Keys |
 | Shoot | Space |
+| Pause / resume | Escape or Enter during a run |
 | Start / restart | Enter or Play button |
 | Choose wave upgrade | Click a card or press 1, 2, or 3 |
-| Quit | Escape |
+| Quit | Escape from the main screen |
 
 The player fires in the last movement direction. Green power-ups restore health.
 
@@ -61,7 +69,7 @@ scaling.
 dotnet test ArenaMaxer.slnx
 ```
 
-Current result: **44 passed, 0 failed**.
+Current result: **15 passed, 0 failed**.
 
 ## Technical highlights
 

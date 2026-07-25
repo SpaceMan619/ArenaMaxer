@@ -81,6 +81,20 @@ public sealed class MusicController : IDisposable
         BeginFade(MediaPlayer.Volume, AudioTimeline.GameOverVolume, 1.2f);
     }
 
+    /// <summary>Pauses the current soundtrack position when gameplay is paused.</summary>
+    public void Pause()
+    {
+        if (_isAvailable && MediaPlayer.State == MediaState.Playing)
+            MediaPlayer.Pause();
+    }
+
+    /// <summary>Resumes the same soundtrack position after gameplay continues.</summary>
+    public void Resume()
+    {
+        if (_isAvailable && MediaPlayer.State == MediaState.Paused)
+            MediaPlayer.Resume();
+    }
+
     public void Update(float deltaTime)
     {
         if (!_isAvailable)

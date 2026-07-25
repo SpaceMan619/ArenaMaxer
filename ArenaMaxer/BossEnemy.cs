@@ -28,6 +28,7 @@ public sealed class BossEnemy : Enemy
     /// <summary>Updates the firing timer and reports when a projectile should be created.</summary>
     public bool TryFire(float deltaTime)
     {
+        // a tiny tolerance stops floating point rounding from delaying a shot by one frame.
         _fireTimer -= Math.Max(0f, deltaTime);
         if (_fireTimer > 0.0001f)
             return false;
@@ -39,6 +40,7 @@ public sealed class BossEnemy : Enemy
     /// <summary>Updates the reinforcement timer and reports when a Rusher pair should spawn.</summary>
     public bool TrySpawnMinions(float deltaTime)
     {
+        // the boss gets help in bursts, so the fight has pressure without endless spawns.
         _minionSpawnTimer -= Math.Max(0f, deltaTime);
         if (_minionSpawnTimer > 0.0001f)
             return false;

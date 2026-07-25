@@ -13,38 +13,28 @@ that do not require a graphics device.
 
 | Area | Examples verified |
 |---|---|
-| Player health | Initial health, damage floor, healing limit, invalid damage |
-| Movement | Normalized diagonal speed and arena boundaries |
+| Player health | Initial health, damage floor, healing limit |
+| Movement | Normalized diagonal speed |
 | Attacking | Shooting cooldown |
-| Projectiles | Direction, speed, damage, and elapsed-time movement |
+| Projectiles | Direction, speed, and elapsed-time movement |
 | Enemies | Rusher, Tank, and Boss durability and statistics |
-| Boss attack | Fire interval, Rusher reinforcement interval, and hostile projectile movement |
+| Boss attack | Fire interval and Rusher reinforcement interval |
 | Distance | Pythagorean distance and pickup radius |
-| Vectors | Direction normalization |
 | Dot product | Target-in-front result |
 | Cross product | Left/right sign |
-| Collision | Overlapping and separated rectangles |
-| Difficulty | Wave timing, decreasing spawn interval, minimum limit |
-| Score | Kill, pickup, and survival rewards |
-| Power-ups | Correct healing effect |
-| Audio timing | Menu/gameplay boundary and clamped fade interpolation |
-| Wave upgrades | Maximum health, multishot cap, bullet damage, attack spread |
+| Difficulty | Wave quota and wave-completion rule |
+| Wave upgrades | Triple Shot boss-preparation upgrade |
 
 ## 3. Edge cases
 
 Tests include:
 
 - Damage larger than remaining health
-- Negative damage
 - Healing beyond maximum health
 - Diagonal movement normalization
-- Movement far outside arena boundaries
 - Shooting during and after cooldown
-- Collision at valid and invalid distances
 - Wave completion only after the full enemy quota is spawned and removed
-- Very high waves reaching the minimum spawn interval
 - A Tank surviving the first two projectile hits
-- Double Shot refusing a third simultaneous projectile
 - Triple Shot activating only through the boss-preparation upgrade
 - Boss Rusher reinforcements spawning only at their configured interval
 
@@ -65,7 +55,7 @@ dotnet test ArenaMaxer.slnx
 Latest verified result:
 
 ```text
-Passed: 44
+Passed: 15
 Failed: 0
 Skipped: 0
 ```
@@ -94,3 +84,5 @@ Manual playtesting verifies:
     displays the Victory screen.
 16. The final guardian fires dodge-only purple projectiles and summons Rusher
     reinforcements during the battle.
+17. Escape pauses gameplay and the soundtrack, then Resume returns to the same
+    game state; Main Menu returns to the start screen.

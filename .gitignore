@@ -20,3 +20,6 @@ highscore.txt
 
 # Machine-generated local tooling data
 Library/
+
+# Local PDF rendering workspace
+tmp/
