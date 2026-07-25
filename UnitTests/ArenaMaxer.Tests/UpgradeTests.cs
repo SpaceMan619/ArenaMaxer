@@ -21,15 +21,14 @@ public sealed class UpgradeTests
     }
 
     [Test]
-    public void DoubleShotUpgrade_AddsAProjectileAndStopsAtThree()
+    public void DoubleShotUpgrade_AddsAProjectileAndStopsAtTwo()
     {
         Player player = new(Vector2.Zero);
-        player.ApplyUpgrade(UpgradeType.DoubleShot);
         player.ApplyUpgrade(UpgradeType.DoubleShot);
 
         Assert.Multiple(() =>
         {
-            Assert.That(player.ProjectileCount, Is.EqualTo(3));
+            Assert.That(player.ProjectileCount, Is.EqualTo(2));
             Assert.That(player.CanApplyUpgrade(UpgradeType.DoubleShot), Is.False);
             Assert.That(() => player.ApplyUpgrade(UpgradeType.DoubleShot), Throws.InvalidOperationException);
         });
@@ -64,11 +63,14 @@ public sealed class UpgradeTests
         Assert.That(projectile.Damage, Is.EqualTo(25));
     }
 
-    [TestCase(24.99f, false)]
-    [TestCase(25f, true)]
-    [TestCase(40f, true)]
-    public void WaveCompletion_UsesWaveTimeBoundary(float elapsedSeconds, bool expected)
+    [TestCase(9, 1, 10, false)]
+    [TestCase(10, 1, 10, false)]
+    [TestCase(10, 0, 10, true)]
+    [TestCase(14, 0, 10, true)]
+    public void WaveCompletion_RequiresEveryEnemyToBeRemoved(
+        int enemiesSpawned, int activeEnemies, int requiredEnemies, bool expected)
     {
-        Assert.That(DifficultyCalculator.IsWaveComplete(elapsedSeconds), Is.EqualTo(expected));
+        Assert.That(DifficultyCalculator.IsWaveComplete(enemiesSpawned, activeEnemies, requiredEnemies),
+            Is.EqualTo(expected));
     }
 }

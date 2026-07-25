@@ -52,12 +52,12 @@ public sealed class Game1 : Game
     private float _powerUpTimer;
     private float _survivalScoreTimer;
     private float _elapsedSurvivalTime;
-    private float _waveElapsedTime;
     private float _displayedHealth = Player.StartingMaximumHealth;
     private float _screenFade;
     private float _dangerTint;
     private int _wave = 1;
     private int _spawnNumber;
+    private int _enemiesSpawnedThisWave;
     private int _highScore;
     private string _statusMessage = string.Empty;
     private float _statusTimer;
@@ -147,13 +147,6 @@ public sealed class Game1 : Game
     private void UpdatePlaying(float deltaTime, KeyboardState keyboard)
     {
         _elapsedSurvivalTime += deltaTime;
-        _waveElapsedTime += deltaTime;
-        if (DifficultyCalculator.IsWaveComplete(_waveElapsedTime))
-        {
-            BeginUpgradeSelection();
-            return;
-        }
-
         Vector2 movement = ReadMovement(keyboard);
         _player.Move(movement, deltaTime, ArenaBounds);
         _player.Update(deltaTime);
@@ -181,6 +174,15 @@ public sealed class Game1 : Game
         RemoveExpiredProjectiles();
         UpdateScoring(deltaTime);
 
+        if (DifficultyCalculator.IsWaveComplete(
+            _enemiesSpawnedThisWave,
+            _enemies.Count,
+            DifficultyCalculator.EnemiesRequiredForWave(_wave)))
+        {
+            BeginUpgradeSelection();
+            return;
+        }
+
         if (_statusTimer > 0f)
             _statusTimer -= deltaTime;
 
@@ -199,7 +201,6 @@ public sealed class Game1 : Game
         _state = GameState.UpgradeSelection;
         _screenFade = 0f;
         _statusTimer = 0f;
-        _enemies.Clear();
         _projectiles.Clear();
     }
 
@@ -234,9 +235,9 @@ public sealed class Game1 : Game
     {
         _player.ApplyUpgrade(upgrade);
         _wave++;
-        _waveElapsedTime = 0f;
         _spawnTimer = 1.2f;
         _powerUpTimer = 8f;
+        _enemiesSpawnedThisWave = 0;
         _displayedHealth = _player.Health;
         _statusMessage = $"WAVE {_wave}";
         _statusTimer = 2f;
@@ -249,21 +250,23 @@ public sealed class Game1 : Game
     private void UpdateSpawning(float deltaTime)
     {
         _spawnTimer -= deltaTime;
-        if (_spawnTimer <= 0f)
+        if (_spawnTimer <= 0f
+            && _enemiesSpawnedThisWave < DifficultyCalculator.EnemiesRequiredForWave(_wave))
         {
             _spawnNumber++;
+            _enemiesSpawnedThisWave++;
             _enemies.Add(CreateEnemy(_spawnNumber));
             _spawnTimer = DifficultyCalculator.SpawnInterval(_wave);
         }
 
         _powerUpTimer -= deltaTime;
-        if (_powerUpTimer <= 0f && _powerUps.Count < 2)
+        if (_powerUpTimer <= 0f && _powerUps.Count < 1)
         {
             Vector2 position = new(
                 _random.Next(ArenaBounds.Left + 40, ArenaBounds.Right - 40),
                 _random.Next(ArenaBounds.Top + 40, ArenaBounds.Bottom - 40));
             _powerUps.Add(new PowerUp(position, PowerUpType.Health));
-            _powerUpTimer = 14f;
+            _powerUpTimer = 20f;
         }
     }
 
@@ -388,14 +391,14 @@ public sealed class Game1 : Game
         _powerUps.Clear();
         _scoreManager.Reset();
         _spawnTimer = DifficultyCalculator.SpawnInterval(1);
-        _powerUpTimer = 8f;
+        _powerUpTimer = 12f;
         _survivalScoreTimer = 0f;
         _elapsedSurvivalTime = 0f;
-        _waveElapsedTime = 0f;
         _displayedHealth = _player.MaximumHealth;
         _dangerTint = 0f;
         _wave = 1;
         _spawnNumber = 0;
+        _enemiesSpawnedThisWave = 0;
         _statusTimer = 0f;
         _statusMessage = string.Empty;
     }
@@ -543,6 +546,14 @@ public sealed class Game1 : Game
             Rectangle statusPanel = new(ScreenWidth / 2 - 125, 88, 250, 42);
             DrawPanel(statusPanel, PanelDark, Gold);
             DrawCentredText(_statusMessage, statusPanel, Gold);
+        }
+        else if (_state == GameState.Playing)
+        {
+            int enemiesRemaining = DifficultyCalculator.EnemiesRequiredForWave(_wave) - _enemiesSpawnedThisWave
+                + _enemies.Count;
+            Rectangle statusPanel = new(ScreenWidth / 2 - 125, 88, 250, 42);
+            DrawPanel(statusPanel, PanelDark, Cyan);
+            DrawCentredText($"{enemiesRemaining} ENEMIES LEFT", statusPanel, SoftWhite);
         }
 
         Rectangle controlsPanel = new(132, 570, 760, 28);

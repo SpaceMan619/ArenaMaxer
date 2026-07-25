@@ -15,9 +15,10 @@ Two enemy classes create different threats:
 
 Enemy numbers and composition scale as the survival timer advances. Points are
 awarded for defeating enemies, collecting power-ups, and surviving each second.
-After each 25-second wave, combat pauses while the player chooses a permanent
-Max Health, Double Shot, or Bullet Damage upgrade. The highest score is saved
-locally between sessions.
+Each wave has a fixed enemy quota. Combat pauses for an upgrade only after every
+enemy in that quota has been removed. The player can choose permanent Max Health,
+Double Shot, or Bullet Damage upgrades. The highest score is saved locally
+between sessions.
 
 ## Controls
 

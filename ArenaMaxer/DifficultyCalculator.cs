@@ -6,19 +6,19 @@ namespace ArenaMaxer;
 public static class DifficultyCalculator
 {
     /// <summary>
-    /// Global balance multiplier. Version 1.1 reduces hostile speed, contact damage,
-    /// and spawn frequency to 80% of their original values.
+    /// Global balance multiplier. Enemies retain 90% of their original speed and damage.
     /// </summary>
-    public const float GameplayDifficulty = 0.8f;
+    public const float GameplayDifficulty = 0.9f;
 
-    public const float SecondsPerWave = 25f;
     public const float MinimumSpawnInterval = 0.475f;
 
-    public static int WaveForTime(float elapsedSeconds) =>
-        1 + (int)(Math.Max(0f, elapsedSeconds) / SecondsPerWave);
+    /// <summary>Returns the number of enemies that must be removed to clear a wave.</summary>
+    public static int EnemiesRequiredForWave(int wave) =>
+        6 + Math.Max(1, wave) * 4;
 
-    public static bool IsWaveComplete(float waveElapsedSeconds) =>
-        waveElapsedSeconds >= SecondsPerWave;
+    /// <summary>Reports whether every enemy required by a wave has spawned and been removed.</summary>
+    public static bool IsWaveComplete(int enemiesSpawned, int activeEnemies, int requiredEnemies) =>
+        enemiesSpawned >= requiredEnemies && activeEnemies == 0;
 
     public static float SpawnInterval(int wave)
     {
@@ -31,7 +31,9 @@ public static class DifficultyCalculator
         Math.Max(0f, originalSpeed) * GameplayDifficulty;
 
     public static int ContactDamage(int originalDamage) =>
-        Math.Max(1, (int)MathF.Round(Math.Max(0, originalDamage) * GameplayDifficulty));
+        Math.Max(1, (int)MathF.Round(
+            Math.Max(0, originalDamage) * GameplayDifficulty,
+            MidpointRounding.AwayFromZero));
 
     public static bool ShouldSpawnTank(int spawnNumber, int wave)
     {

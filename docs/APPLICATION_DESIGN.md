@@ -155,13 +155,14 @@ Lerp is used in three different visual systems:
 
 ## 6. Difficulty progression
 
-Each wave lasts 25 seconds. Combat then pauses until the player chooses one of
-three permanent upgrades. A global `0.8` balance multiplier reduces enemy
-movement speed, contact damage, and spawn frequency by 20%. The spawn interval
-uses:
+Each wave has a fixed enemy quota: wave one has 10 enemies and every later wave
+adds four more. Combat pauses only when the full quota has spawned and the arena
+is empty. The player then chooses one of three permanent upgrades. A global
+`0.9` balance multiplier reduces enemy movement speed and contact damage by 10%.
+The spawn interval uses:
 
 ```text
-max(0.475, (1.35 - (wave - 1) × 0.11) / 0.8)
+max(0.475, (1.35 - (wave - 1) × 0.11) / 0.9)
 ```
 
 Tank enemies also appear more frequently as the wave increases. This increases

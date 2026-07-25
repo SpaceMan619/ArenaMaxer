@@ -95,7 +95,7 @@ public sealed class Player
                 Health = Math.Min(MaximumHealth, Health + 25);
                 break;
             case UpgradeType.DoubleShot:
-                ProjectileCount = Math.Min(3, ProjectileCount + 1);
+                ProjectileCount = Math.Min(2, ProjectileCount + 1);
                 break;
             case UpgradeType.BulletDamage:
                 ProjectileDamage += 5;
@@ -109,7 +109,7 @@ public sealed class Player
     public bool CanApplyUpgrade(UpgradeType upgrade) => upgrade switch
     {
         UpgradeType.MaxHealth => true,
-        UpgradeType.DoubleShot => ProjectileCount < 3,
+        UpgradeType.DoubleShot => ProjectileCount < 2,
         UpgradeType.BulletDamage => true,
         _ => throw new ArgumentOutOfRangeException(nameof(upgrade))
     };

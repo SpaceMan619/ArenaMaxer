@@ -40,7 +40,7 @@ Tests include:
 - Movement far outside arena boundaries
 - Shooting during and after cooldown
 - Collision at valid and invalid distances
-- Wave completion exactly at the 25-second boundary
+- Wave completion only after the full enemy quota is spawned and removed
 - Very high waves reaching the minimum spawn interval
 - A Tank surviving the first two projectile hits
 - Double Shot refusing a fourth simultaneous projectile
@@ -83,7 +83,7 @@ Manual playtesting verifies:
 10. Game Over appears at zero health and restart works.
 11. High score remains after closing and reopening the game.
 12. Escape closes the game.
-13. Combat pauses after 25 seconds and the three upgrade cards accept mouse or
-    number-key selection.
+13. Combat pauses only after every enemy in the current wave is defeated or
+    removed, and the three upgrade cards accept mouse or number-key selection.
 14. The soundtrack plays 0:00–0:39 on the menu, begins gameplay from 0:39 with
     a 3.5-second fade, and loops gameplay without replaying the intro.
