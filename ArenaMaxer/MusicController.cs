@@ -24,6 +24,7 @@ public sealed class MusicController : IDisposable
     private bool _isAvailable;
 
     public bool IsAvailable => _isAvailable;
+    public string LastError { get; private set; } = string.Empty;
 
     /// <summary>Loads a music file without allowing missing or unsupported audio to crash the game.</summary>
     public bool TryLoad(string path)
@@ -34,12 +35,19 @@ public sealed class MusicController : IDisposable
         try
         {
             _theme = Song.FromUri("ArenaMaxer Theme", new Uri(Path.GetFullPath(path)));
+            if (_theme.Duration <= TimeSpan.Zero)
+            {
+                LastError = "MonoGame could not decode the music file.";
+                _theme.Dispose();
+                return false;
+            }
             MediaPlayer.IsRepeating = false;
             _isAvailable = true;
             return true;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            LastError = exception.Message;
             _isAvailable = false;
             return false;
         }
@@ -99,8 +107,9 @@ public sealed class MusicController : IDisposable
                 PlayFrom(TimeSpan.FromSeconds(AudioTimeline.GameplayStartSeconds), volume);
             }
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            LastError = exception.Message;
             DisableAudio();
         }
     }

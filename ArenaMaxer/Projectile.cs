@@ -13,17 +13,20 @@ public sealed class Projectile
 
     private float _remainingLifetime = MaximumLifetime;
 
-    public Projectile(Vector2 startPosition, Vector2 direction)
+    public Projectile(Vector2 startPosition, Vector2 direction, int damage = DefaultDamage)
     {
         if (direction == Vector2.Zero)
             throw new ArgumentException("Projectile direction cannot be zero.", nameof(direction));
+        if (damage <= 0)
+            throw new ArgumentOutOfRangeException(nameof(damage), "Projectile damage must be positive.");
         Position = startPosition;
         Direction = Vector2.Normalize(direction);
+        Damage = damage;
     }
 
     public Vector2 Position { get; private set; }
     public Vector2 Direction { get; }
-    public int Damage => DefaultDamage;
+    public int Damage { get; }
     public bool IsActive => _remainingLifetime > 0f;
     public Rectangle Bounds => new(
         (int)(Position.X - Size / 2f),

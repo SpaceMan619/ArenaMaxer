@@ -16,7 +16,7 @@ that do not require a graphics device.
 | Player health | Initial health, damage floor, healing limit, invalid damage |
 | Movement | Normalized diagonal speed and arena boundaries |
 | Attacking | Shooting cooldown |
-| Projectiles | Direction, speed, and elapsed-time movement |
+| Projectiles | Direction, speed, damage, and elapsed-time movement |
 | Enemies | Rusher durability and Tank durability |
 | Distance | Pythagorean distance and pickup radius |
 | Vectors | Direction normalization |
@@ -27,6 +27,7 @@ that do not require a graphics device.
 | Score | Kill, pickup, and survival rewards |
 | Power-ups | Correct healing effect |
 | Audio timing | Menu/gameplay boundary and clamped fade interpolation |
+| Wave upgrades | Maximum health, multishot cap, bullet damage, attack spread |
 
 ## 3. Edge cases
 
@@ -39,9 +40,10 @@ Tests include:
 - Movement far outside arena boundaries
 - Shooting during and after cooldown
 - Collision at valid and invalid distances
-- Wave changes exactly at the 20-second boundary
+- Wave completion exactly at the 25-second boundary
 - Very high waves reaching the minimum spawn interval
 - A Tank surviving the first two projectile hits
+- Double Shot refusing a fourth simultaneous projectile
 
 ## 4. Independence and repeatability
 
@@ -60,7 +62,7 @@ dotnet test ArenaMaxer.slnx
 Latest verified result:
 
 ```text
-Passed: 29
+Passed: 39
 Failed: 0
 Skipped: 0
 ```
@@ -81,3 +83,7 @@ Manual playtesting verifies:
 10. Game Over appears at zero health and restart works.
 11. High score remains after closing and reopening the game.
 12. Escape closes the game.
+13. Combat pauses after 25 seconds and the three upgrade cards accept mouse or
+    number-key selection.
+14. The soundtrack plays 0:00–0:39 on the menu, begins gameplay from 0:39 with
+    a 3.5-second fade, and loops gameplay without replaying the intro.

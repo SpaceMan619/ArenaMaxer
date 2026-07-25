@@ -17,6 +17,9 @@ public static class DifficultyCalculator
     public static int WaveForTime(float elapsedSeconds) =>
         1 + (int)(Math.Max(0f, elapsedSeconds) / SecondsPerWave);
 
+    public static bool IsWaveComplete(float waveElapsedSeconds) =>
+        waveElapsedSeconds >= SecondsPerWave;
+
     public static float SpawnInterval(int wave)
     {
         int safeWave = Math.Max(1, wave);

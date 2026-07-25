@@ -9,7 +9,7 @@ public sealed class PlayerTests
     public void NewPlayer_StartsWithMaximumHealth()
     {
         Player player = new(Vector2.Zero);
-        Assert.That(player.Health, Is.EqualTo(Player.MaximumHealth));
+        Assert.That(player.Health, Is.EqualTo(player.MaximumHealth));
     }
 
     [Test]
@@ -34,7 +34,7 @@ public sealed class PlayerTests
         Player player = new(Vector2.Zero);
         player.TakeDamage(10);
         player.Heal(50);
-        Assert.That(player.Health, Is.EqualTo(Player.MaximumHealth));
+        Assert.That(player.Health, Is.EqualTo(player.MaximumHealth));
     }
 
     [Test]

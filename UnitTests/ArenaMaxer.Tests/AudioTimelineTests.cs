@@ -11,9 +11,9 @@ public sealed class AudioTimelineTests
     }
 
     [TestCase(0f, 0f)]
-    [TestCase(1.75f, 0.21f)]
-    [TestCase(3.5f, 0.42f)]
-    [TestCase(10f, 0.42f)]
+    [TestCase(1.75f, 0.46f)]
+    [TestCase(3.5f, 0.92f)]
+    [TestCase(10f, 0.92f)]
     public void FadeVolume_InterpolatesAndClamps(float elapsedSeconds, float expectedVolume)
     {
         float volume = AudioTimeline.FadeVolume(

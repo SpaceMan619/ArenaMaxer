@@ -8,9 +8,9 @@ public static class AudioTimeline
     public const float MenuLoopEndSeconds = 39f;
     public const float GameplayStartSeconds = 39f;
     public const float GameplayFadeSeconds = 3.5f;
-    public const float MenuVolume = 0.28f;
-    public const float GameplayVolume = 0.42f;
-    public const float GameOverVolume = 0.20f;
+    public const float MenuVolume = 0.88f;
+    public const float GameplayVolume = 0.92f;
+    public const float GameOverVolume = 0.84f;
 
     public static float FadeVolume(float elapsedSeconds, float durationSeconds, float start, float target)
     {

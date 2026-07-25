@@ -15,7 +15,9 @@ Two enemy classes create different threats:
 
 Enemy numbers and composition scale as the survival timer advances. Points are
 awarded for defeating enemies, collecting power-ups, and surviving each second.
-The highest score is saved locally between sessions.
+After each 25-second wave, combat pauses while the player chooses a permanent
+Max Health, Double Shot, or Bullet Damage upgrade. The highest score is saved
+locally between sessions.
 
 ## Controls
 
@@ -24,6 +26,7 @@ The highest score is saved locally between sessions.
 | Move | WASD or Arrow Keys |
 | Shoot | Space |
 | Start / restart | Enter or Play button |
+| Choose wave upgrade | Click a card or press 1, 2, or 3 |
 | Quit | Escape |
 
 The player fires in the last movement direction. Green power-ups restore health.
@@ -55,7 +58,7 @@ scaling.
 dotnet test ArenaMaxer.slnx
 ```
 
-Current result: **29 passed, 0 failed**.
+Current result: **39 passed, 0 failed**.
 
 ## Technical highlights
 
@@ -66,6 +69,7 @@ Current result: **29 passed, 0 failed**.
 - Dot-product facing checks and cross-product steering
 - Linear interpolation for health, danger, and screen transitions
 - Wave-based algebraic difficulty scaling
+- Paused between-wave upgrade selection with persistent player statistics
 - Defensive validation and high-score file exception handling
 - Section-based soundtrack playback with timed fades and looping
 - Original code-generated pulse/noise arcade sound effects

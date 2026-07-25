@@ -5,5 +5,6 @@ public enum GameState
 {
     Start,
     Playing,
+    UpgradeSelection,
     GameOver
 }

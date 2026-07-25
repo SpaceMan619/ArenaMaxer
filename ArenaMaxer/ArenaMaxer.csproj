@@ -33,9 +33,9 @@
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*" />
   </ItemGroup>
-  <ItemGroup Condition="Exists('LocalAudio/ThemeMusic.mp3')">
-    <Content Include="LocalAudio/ThemeMusic.mp3">
-      <Link>Content/Audio/ThemeMusic.mp3</Link>
+  <ItemGroup Condition="Exists('LocalAudio/ThemeMusic.ogg')">
+    <Content Include="LocalAudio/ThemeMusic.ogg">
+      <Link>Content/Audio/ThemeMusic.ogg</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

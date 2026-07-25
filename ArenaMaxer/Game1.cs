@@ -17,6 +17,9 @@ public sealed class Game1 : Game
     public const int ScreenHeight = 600;
     private static readonly Rectangle ArenaBounds = new(20, 76, ScreenWidth - 40, ScreenHeight - 108);
     private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 355, 220, 58);
+    private static readonly Rectangle HealthUpgradeCard = new(92, 226, 260, 210);
+    private static readonly Rectangle DoubleShotUpgradeCard = new(382, 226, 260, 210);
+    private static readonly Rectangle DamageUpgradeCard = new(672, 226, 260, 210);
     private static readonly Color Ink = new(7, 10, 24);
     private static readonly Color Shadow = new(2, 4, 12);
     private static readonly Color PanelDark = new(14, 22, 46);
@@ -49,7 +52,8 @@ public sealed class Game1 : Game
     private float _powerUpTimer;
     private float _survivalScoreTimer;
     private float _elapsedSurvivalTime;
-    private float _displayedHealth = Player.MaximumHealth;
+    private float _waveElapsedTime;
+    private float _displayedHealth = Player.StartingMaximumHealth;
     private float _screenFade;
     private float _dangerTint;
     private int _wave = 1;
@@ -80,6 +84,8 @@ public sealed class Game1 : Game
         _music = new MusicController();
         if (_music.TryLoad(GetMusicPath()))
             _music.StartMenu();
+        else
+            Console.Error.WriteLine($"ArenaMaxer music unavailable: {_music.LastError}");
 
         string highScorePath = GetHighScorePath();
         _highScore = HighScoreStorage.Load(highScorePath);
@@ -116,6 +122,9 @@ public sealed class Game1 : Game
             case GameState.Playing:
                 UpdatePlaying(deltaTime, keyboard);
                 break;
+            case GameState.UpgradeSelection:
+                UpdateUpgradeSelection(deltaTime, keyboard, mouse);
+                break;
             case GameState.GameOver:
                 _screenFade = MathHelper.Lerp(_screenFade, 1f, 4f * deltaTime);
                 if (enterPressed || clickedPlay)
@@ -138,13 +147,11 @@ public sealed class Game1 : Game
     private void UpdatePlaying(float deltaTime, KeyboardState keyboard)
     {
         _elapsedSurvivalTime += deltaTime;
-        int newWave = DifficultyCalculator.WaveForTime(_elapsedSurvivalTime);
-        if (newWave != _wave)
+        _waveElapsedTime += deltaTime;
+        if (DifficultyCalculator.IsWaveComplete(_waveElapsedTime))
         {
-            _wave = newWave;
-            _statusMessage = $"WAVE {_wave}";
-            _statusTimer = 2f;
-            _sounds.PlayWaveStart();
+            BeginUpgradeSelection();
+            return;
         }
 
         Vector2 movement = ReadMovement(keyboard);
@@ -154,7 +161,12 @@ public sealed class Game1 : Game
         bool shootPressed = IsNewKeyPress(keyboard, Keys.Space);
         if (shootPressed && _player.TryShoot())
         {
-            _projectiles.Add(new Projectile(_player.Position, _player.FacingDirection));
+            foreach (Vector2 direction in AttackPattern.CreateDirections(
+                _player.FacingDirection,
+                _player.ProjectileCount))
+            {
+                _projectiles.Add(new Projectile(_player.Position, direction, _player.ProjectileDamage));
+            }
             _sounds.PlayFire();
         }
 
@@ -180,6 +192,58 @@ public sealed class Game1 : Game
 
         if (!_player.IsAlive)
             EndGame();
+    }
+
+    private void BeginUpgradeSelection()
+    {
+        _state = GameState.UpgradeSelection;
+        _screenFade = 0f;
+        _statusTimer = 0f;
+        _enemies.Clear();
+        _projectiles.Clear();
+    }
+
+    private void UpdateUpgradeSelection(float deltaTime, KeyboardState keyboard, MouseState mouse)
+    {
+        _screenFade = MathHelper.Lerp(_screenFade, 1f, 5f * deltaTime);
+        bool clicked = mouse.LeftButton == ButtonState.Pressed
+            && _previousMouse.LeftButton == ButtonState.Released;
+
+        UpgradeType? selectedUpgrade = null;
+        if (IsNewKeyPress(keyboard, Keys.D1) || IsNewKeyPress(keyboard, Keys.NumPad1)
+            || (clicked && HealthUpgradeCard.Contains(mouse.Position)))
+        {
+            selectedUpgrade = UpgradeType.MaxHealth;
+        }
+        else if (IsNewKeyPress(keyboard, Keys.D2) || IsNewKeyPress(keyboard, Keys.NumPad2)
+            || (clicked && DoubleShotUpgradeCard.Contains(mouse.Position)))
+        {
+            selectedUpgrade = UpgradeType.DoubleShot;
+        }
+        else if (IsNewKeyPress(keyboard, Keys.D3) || IsNewKeyPress(keyboard, Keys.NumPad3)
+            || (clicked && DamageUpgradeCard.Contains(mouse.Position)))
+        {
+            selectedUpgrade = UpgradeType.BulletDamage;
+        }
+
+        if (selectedUpgrade.HasValue && _player.CanApplyUpgrade(selectedUpgrade.Value))
+            ApplyUpgradeAndStartNextWave(selectedUpgrade.Value);
+    }
+
+    private void ApplyUpgradeAndStartNextWave(UpgradeType upgrade)
+    {
+        _player.ApplyUpgrade(upgrade);
+        _wave++;
+        _waveElapsedTime = 0f;
+        _spawnTimer = 1.2f;
+        _powerUpTimer = 8f;
+        _displayedHealth = _player.Health;
+        _statusMessage = $"WAVE {_wave}";
+        _statusTimer = 2f;
+        _screenFade = 0f;
+        _state = GameState.Playing;
+        _sounds.PlayPickup();
+        _sounds.PlayWaveStart();
     }
 
     private void UpdateSpawning(float deltaTime)
@@ -327,7 +391,8 @@ public sealed class Game1 : Game
         _powerUpTimer = 8f;
         _survivalScoreTimer = 0f;
         _elapsedSurvivalTime = 0f;
-        _displayedHealth = Player.MaximumHealth;
+        _waveElapsedTime = 0f;
+        _displayedHealth = _player.MaximumHealth;
         _dangerTint = 0f;
         _wave = 1;
         _spawnNumber = 0;
@@ -349,6 +414,8 @@ public sealed class Game1 : Game
             DrawHud();
             if (_state == GameState.GameOver)
                 DrawGameOverScreen();
+            else if (_state == GameState.UpgradeSelection)
+                DrawUpgradeSelectionScreen();
         }
 
         _spriteBatch.End();
@@ -463,7 +530,7 @@ public sealed class Game1 : Game
         DrawPanel(healthPanel, PanelMid, Crimson);
         Rectangle healthBackground = new(748, 20, 250, 24);
         const int barWidth = 250;
-        int healthWidth = (int)(barWidth * Math.Clamp(_displayedHealth / Player.MaximumHealth, 0f, 1f));
+        int healthWidth = (int)(barWidth * Math.Clamp(_displayedHealth / _player.MaximumHealth, 0f, 1f));
         DrawRectangle(healthBackground, new Color(66, 22, 38));
         DrawRectangle(new Rectangle(healthBackground.X, healthBackground.Y, healthWidth, healthBackground.Height),
             _player.Health > 30 ? new Color(55, 213, 117) : Crimson);
@@ -488,6 +555,47 @@ public sealed class Game1 : Game
         DrawControlHint(new Rectangle(716, 572, 164, 24), "QUIT", "ESC");
     }
 
+    private void DrawUpgradeSelectionScreen()
+    {
+        float alpha = Math.Clamp(_screenFade, 0f, 1f);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * (0.76f * alpha));
+
+        Rectangle panel = new(54, 112, 916, 382);
+        DrawPanel(panel, PanelDark * alpha, Gold * alpha);
+        DrawCentredText($"WAVE {_wave} CLEAR", new Rectangle(0, 132, ScreenWidth, 46), Gold * alpha);
+        DrawCentredText("CHOOSE ONE PERMANENT UPGRADE", new Rectangle(0, 174, ScreenWidth, 30),
+            SoftWhite * alpha);
+
+        MouseState mouse = Mouse.GetState();
+        DrawUpgradeCard(HealthUpgradeCard, "1  CORE BOOST", "+25 MAX HP", $"CURRENT {_player.MaximumHealth}",
+            UpgradeType.MaxHealth, mouse, alpha);
+        DrawUpgradeCard(DoubleShotUpgradeCard, "2  DOUBLE SHOT", "+1 PROJECTILE", $"CURRENT {_player.ProjectileCount}",
+            UpgradeType.DoubleShot, mouse, alpha);
+        DrawUpgradeCard(DamageUpgradeCard, "3  DAMAGE CHIP", "+5 BULLET DAMAGE", $"CURRENT {_player.ProjectileDamage}",
+            UpgradeType.BulletDamage, mouse, alpha);
+
+        DrawCentredText("CLICK A CARD OR PRESS 1 / 2 / 3", new Rectangle(0, 455, ScreenWidth, 28),
+            new Color(151, 181, 205) * alpha);
+    }
+
+    private void DrawUpgradeCard(Rectangle area, string title, string benefit, string current,
+        UpgradeType upgrade, MouseState mouse, float alpha)
+    {
+        bool available = _player.CanApplyUpgrade(upgrade);
+        bool hovered = available && area.Contains(mouse.Position);
+        Color accent = !available ? PanelMid : hovered ? Cyan : Blue;
+        Color text = available ? SoftWhite : new Color(105, 124, 151);
+
+        DrawPanel(area, PanelMid * alpha, accent * alpha);
+        DrawRectangle(new Rectangle(area.X + 12, area.Y + 12, area.Width - 24, 6), accent * alpha);
+        DrawCentredText(title, new Rectangle(area.X + 8, area.Y + 38, area.Width - 16, 34),
+            (available ? Gold : text) * alpha);
+        DrawCentredText(available ? benefit : "MAXED", new Rectangle(area.X + 8, area.Y + 94, area.Width - 16, 32),
+            text * alpha);
+        DrawCentredText(current, new Rectangle(area.X + 8, area.Y + 140, area.Width - 16, 28),
+            new Color(151, 181, 205) * alpha);
+    }
+
     private void DrawStartScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -505,6 +613,10 @@ public sealed class Game1 : Game
         DrawCentredText("CLICK PLAY OR PRESS ENTER", new Rectangle(0, 427, ScreenWidth, 32),
             new Color(151, 181, 205) * alpha);
         DrawCentredText("VERSION 0.5", new Rectangle(700, 463, 126, 24), Gold * alpha);
+        if (!_music.IsAvailable)
+        {
+            DrawCentredText("MUSIC UNAVAILABLE", new Rectangle(198, 463, 260, 24), Crimson * alpha);
+        }
     }
 
     private void DrawGameOverScreen()
@@ -686,7 +798,7 @@ public sealed class Game1 : Game
         AppContext.BaseDirectory,
         "Content",
         "Audio",
-        "ThemeMusic.mp3");
+        "ThemeMusic.ogg");
 
     protected override void Dispose(bool disposing)
     {

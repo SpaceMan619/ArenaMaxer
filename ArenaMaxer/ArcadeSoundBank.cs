@@ -36,13 +36,13 @@ public sealed class ArcadeSoundBank : IDisposable
         }
     }
 
-    public void PlayFire() => _fire?.Play(0.18f, 0f, 0f);
-    public void PlayEnemyHit() => _enemyHit?.Play(0.24f, 0f, 0f);
-    public void PlayEnemyDefeat() => _enemyDefeat?.Play(0.27f, 0f, 0f);
-    public void PlayPlayerDamage() => _playerDamage?.Play(0.30f, 0f, 0f);
-    public void PlayPickup() => _pickup?.Play(0.25f, 0f, 0f);
-    public void PlayWaveStart() => _waveStart?.Play(0.28f, 0f, 0f);
-    public void PlayGameOver() => _gameOver?.Play(0.34f, 0f, 0f);
+    public void PlayFire() => _fire?.Play(0.34f, 0f, 0f);
+    public void PlayEnemyHit() => _enemyHit?.Play(0.42f, 0f, 0f);
+    public void PlayEnemyDefeat() => _enemyDefeat?.Play(0.46f, 0f, 0f);
+    public void PlayPlayerDamage() => _playerDamage?.Play(0.52f, 0f, 0f);
+    public void PlayPickup() => _pickup?.Play(0.44f, 0f, 0f);
+    public void PlayWaveStart() => _waveStart?.Play(0.46f, 0f, 0f);
+    public void PlayGameOver() => _gameOver?.Play(0.54f, 0f, 0f);
 
     private static SoundEffect CreateFire()
     {

@@ -30,6 +30,7 @@ Game1
 │   ├── RusherEnemy
 │   └── TankEnemy
 ├── List<Projectile>
+├── AttackPattern
 ├── List<PowerUp>
 ├── ScoreManager
 ├── DifficultyCalculator
@@ -101,9 +102,9 @@ Arrays would have a fixed size and require unused positions or resizing. A linke
 list would add complexity and provide little benefit for the small number of
 entities used here.
 
-`GameState` and `PowerUpType` enums replace unclear numeric or string values with
-named states. This makes screen transitions and collectible effects easier to
-read and safer to extend.
+`GameState`, `PowerUpType`, and `UpgradeType` enums replace unclear numeric or
+string values with named states. This makes screen transitions, collectible
+effects, and between-wave choices easier to read and safer to extend.
 
 ## 5. Mathematics in gameplay
 
@@ -128,6 +129,7 @@ Enemies calculate a normalized direction from their position to the player.
 
 - `health = max(0, health - damage)`
 - `health = min(maximum health, health + healing)`
+- Permanent upgrades add `25` maximum health, one projectile, or `5` damage.
 - Spawn interval decreases by `0.11` seconds per wave.
 - A lower limit prevents impossible spawn speeds.
 - Score combines enemy rewards, power-up rewards, and wave-scaled survival points.
@@ -153,7 +155,8 @@ Lerp is used in three different visual systems:
 
 ## 6. Difficulty progression
 
-Each wave lasts 25 seconds. A global `0.8` balance multiplier reduces enemy
+Each wave lasts 25 seconds. Combat then pauses until the player chooses one of
+three permanent upgrades. A global `0.8` balance multiplier reduces enemy
 movement speed, contact damage, and spawn frequency by 20%. The spawn interval
 uses:
 
@@ -171,6 +174,8 @@ Input is read in `Game1` and converted into simple commands:
 - A movement vector is passed to `Player.Move`.
 - A new Space press asks `Player.TryShoot`.
 - A successful attack creates a `Projectile`.
+- A card click or number-key press is converted to an `UpgradeType`, which the
+  player validates and applies before the next wave starts.
 
 The UI reads public state such as player health, score, wave, and survival time.
 It does not directly calculate damage or change health. This keeps display code
@@ -179,7 +184,8 @@ separate from business rules.
 ## 8. Error handling
 
 Player and enemy methods reject negative damage or healing with clear exceptions.
-Projectile construction rejects a zero direction. High-score loading and saving
+Projectile construction rejects a zero direction or non-positive damage. A
+maxed-out multishot selection is disabled. High-score loading and saving
 handle missing files, invalid content, unavailable folders, permission errors, and
 I/O errors without crashing the game.
 
