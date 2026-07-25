@@ -97,6 +97,9 @@ public sealed class Player
             case UpgradeType.DoubleShot:
                 ProjectileCount = Math.Min(2, ProjectileCount + 1);
                 break;
+            case UpgradeType.TripleShot:
+                ProjectileCount = 3;
+                break;
             case UpgradeType.BulletDamage:
                 ProjectileDamage += 5;
                 break;
@@ -110,6 +113,7 @@ public sealed class Player
     {
         UpgradeType.MaxHealth => true,
         UpgradeType.DoubleShot => ProjectileCount < 2,
+        UpgradeType.TripleShot => ProjectileCount < 3,
         UpgradeType.BulletDamage => true,
         _ => throw new ArgumentOutOfRangeException(nameof(upgrade))
     };

@@ -17,7 +17,9 @@ Enemy numbers and composition scale as the survival timer advances. Points are
 awarded for defeating enemies, collecting power-ups, and surviving each second.
 Each wave has a fixed enemy quota. Combat pauses for an upgrade only after every
 enemy in that quota has been removed. The player can choose permanent Max Health,
-Double Shot, or Bullet Damage upgrades. The highest score is saved locally
+Double Shot, or Bullet Damage upgrades. Clearing wave four opens a Boss Prep
+choice, where Triple Shot can be selected for the final battle. Defeat the purple
+guardian in wave five to secure the arena. The highest score is saved locally
 between sessions.
 
 ## Controls
@@ -59,11 +61,11 @@ scaling.
 dotnet test ArenaMaxer.slnx
 ```
 
-Current result: **39 passed, 0 failed**.
+Current result: **44 passed, 0 failed**.
 
 ## Technical highlights
 
-- Object-oriented enemy hierarchy with `RusherEnemy` and `TankEnemy`
+- Object-oriented enemy hierarchy with `RusherEnemy`, `TankEnemy`, and `BossEnemy`
 - Testable gameplay logic separated from MonoGame rendering
 - Vector-based player, enemy, and projectile movement
 - Distance-based detection and collection
@@ -71,6 +73,7 @@ Current result: **39 passed, 0 failed**.
 - Linear interpolation for health, danger, and screen transitions
 - Wave-based algebraic difficulty scaling
 - Paused between-wave upgrade selection with persistent player statistics
+- Final boss battle, blockable hostile projectiles, and a Victory screen
 - Defensive validation and high-score file exception handling
 - Section-based soundtrack playback with timed fades and looping
 - Original code-generated pulse/noise arcade sound effects

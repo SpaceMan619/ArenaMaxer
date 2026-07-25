@@ -5,5 +5,6 @@ public enum UpgradeType
 {
     MaxHealth,
     DoubleShot,
+    TripleShot,
     BulletDamage
 }

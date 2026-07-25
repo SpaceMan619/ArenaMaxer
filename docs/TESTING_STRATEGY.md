@@ -17,7 +17,8 @@ that do not require a graphics device.
 | Movement | Normalized diagonal speed and arena boundaries |
 | Attacking | Shooting cooldown |
 | Projectiles | Direction, speed, damage, and elapsed-time movement |
-| Enemies | Rusher durability and Tank durability |
+| Enemies | Rusher, Tank, and Boss durability and statistics |
+| Boss attack | Fire interval and hostile projectile movement |
 | Distance | Pythagorean distance and pickup radius |
 | Vectors | Direction normalization |
 | Dot product | Target-in-front result |
@@ -43,7 +44,8 @@ Tests include:
 - Wave completion only after the full enemy quota is spawned and removed
 - Very high waves reaching the minimum spawn interval
 - A Tank surviving the first two projectile hits
-- Double Shot refusing a fourth simultaneous projectile
+- Double Shot refusing a third simultaneous projectile
+- Triple Shot activating only through the boss-preparation upgrade
 
 ## 4. Independence and repeatability
 
@@ -62,7 +64,7 @@ dotnet test ArenaMaxer.slnx
 Latest verified result:
 
 ```text
-Passed: 39
+Passed: 44
 Failed: 0
 Skipped: 0
 ```
@@ -87,3 +89,5 @@ Manual playtesting verifies:
     removed, and the three upgrade cards accept mouse or number-key selection.
 14. The soundtrack plays 0:00–0:39 on the menu, begins gameplay from 0:39 with
     a 3.5-second fade, and loops gameplay without replaying the intro.
+15. Clearing wave four shows Boss Prep; defeating the guardian after wave five
+    displays the Victory screen.

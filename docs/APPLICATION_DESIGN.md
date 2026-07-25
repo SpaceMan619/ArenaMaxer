@@ -28,8 +28,10 @@ Game1
 ├── Player
 ├── List<Enemy>
 │   ├── RusherEnemy
-│   └── TankEnemy
+│   ├── TankEnemy
+│   └── BossEnemy
 ├── List<Projectile>
+├── List<EnemyProjectile>
 ├── AttackPattern
 ├── List<PowerUp>
 ├── ScoreManager
@@ -72,6 +74,7 @@ loops.
 - `Player`: player state and movement
 - `Enemy`: shared enemy state and steering
 - `Projectile`: projectile movement and lifetime
+- `EnemyProjectile`: blockable boss projectile movement and lifetime
 - `PowerUp`: collectible effect
 - `CollisionHelper`: collision and pickup-range checks
 - `MathUtilities`: reusable vector calculations
@@ -167,6 +170,11 @@ max(0.475, (1.35 - (wave - 1) × 0.11) / 0.9)
 
 Tank enemies also appear more frequently as the wave increases. This increases
 difficulty through both spawn frequency and enemy composition.
+
+After wave four, the player enters Boss Prep and may choose Triple Shot instead
+of the normal Double Shot. Wave five contains only the final guardian. Its
+projectiles can be avoided or destroyed by player projectiles; defeating it ends
+the game with a Victory screen.
 
 ## 7. UI and game logic communication
 

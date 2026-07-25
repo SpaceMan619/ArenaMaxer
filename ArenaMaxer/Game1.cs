@@ -15,6 +15,7 @@ public sealed class Game1 : Game
 {
     public const int ScreenWidth = 1024;
     public const int ScreenHeight = 600;
+    private const int FinalBossWave = 5;
     private static readonly Rectangle ArenaBounds = new(20, 76, ScreenWidth - 40, ScreenHeight - 108);
     private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 355, 220, 58);
     private static readonly Rectangle HealthUpgradeCard = new(92, 226, 260, 210);
@@ -36,6 +37,7 @@ public sealed class Game1 : Game
     private readonly Random _random = new();
     private readonly List<Enemy> _enemies = new();
     private readonly List<Projectile> _projectiles = new();
+    private readonly List<EnemyProjectile> _enemyProjectiles = new();
     private readonly List<PowerUp> _powerUps = new();
     private readonly ScoreManager _scoreManager = new();
 
@@ -45,6 +47,7 @@ public sealed class Game1 : Game
     private ArcadeSoundBank _sounds = null!;
     private MusicController _music = null!;
     private Player _player = null!;
+    private BossEnemy _boss = null!;
     private GameState _state = GameState.Start;
     private KeyboardState _previousKeyboard;
     private MouseState _previousMouse;
@@ -59,6 +62,8 @@ public sealed class Game1 : Game
     private int _spawnNumber;
     private int _enemiesSpawnedThisWave;
     private int _highScore;
+    private bool _isBossPreparation;
+    private float _bossContactCooldown;
     private string _statusMessage = string.Empty;
     private float _statusTimer;
 
@@ -125,7 +130,11 @@ public sealed class Game1 : Game
             case GameState.UpgradeSelection:
                 UpdateUpgradeSelection(deltaTime, keyboard, mouse);
                 break;
+            case GameState.BossBattle:
+                UpdateBossBattle(deltaTime, keyboard);
+                break;
             case GameState.GameOver:
+            case GameState.Victory:
                 _screenFade = MathHelper.Lerp(_screenFade, 1f, 4f * deltaTime);
                 if (enterPressed || clickedPlay)
                 {
@@ -151,17 +160,7 @@ public sealed class Game1 : Game
         _player.Move(movement, deltaTime, ArenaBounds);
         _player.Update(deltaTime);
 
-        bool shootPressed = IsNewKeyPress(keyboard, Keys.Space);
-        if (shootPressed && _player.TryShoot())
-        {
-            foreach (Vector2 direction in AttackPattern.CreateDirections(
-                _player.FacingDirection,
-                _player.ProjectileCount))
-            {
-                _projectiles.Add(new Projectile(_player.Position, direction, _player.ProjectileDamage));
-            }
-            _sounds.PlayFire();
-        }
+        TryFirePlayer(keyboard);
 
         UpdateSpawning(deltaTime);
 
@@ -179,7 +178,7 @@ public sealed class Game1 : Game
             _enemies.Count,
             DifficultyCalculator.EnemiesRequiredForWave(_wave)))
         {
-            BeginUpgradeSelection();
+            BeginUpgradeSelection(_wave == FinalBossWave - 1);
             return;
         }
 
@@ -196,9 +195,10 @@ public sealed class Game1 : Game
             EndGame();
     }
 
-    private void BeginUpgradeSelection()
+    private void BeginUpgradeSelection(bool isBossPreparation)
     {
         _state = GameState.UpgradeSelection;
+        _isBossPreparation = isBossPreparation;
         _screenFade = 0f;
         _statusTimer = 0f;
         _projectiles.Clear();
@@ -219,7 +219,7 @@ public sealed class Game1 : Game
         else if (IsNewKeyPress(keyboard, Keys.D2) || IsNewKeyPress(keyboard, Keys.NumPad2)
             || (clicked && DoubleShotUpgradeCard.Contains(mouse.Position)))
         {
-            selectedUpgrade = UpgradeType.DoubleShot;
+            selectedUpgrade = _isBossPreparation ? UpgradeType.TripleShot : UpgradeType.DoubleShot;
         }
         else if (IsNewKeyPress(keyboard, Keys.D3) || IsNewKeyPress(keyboard, Keys.NumPad3)
             || (clicked && DamageUpgradeCard.Contains(mouse.Position)))
@@ -234,6 +234,23 @@ public sealed class Game1 : Game
     private void ApplyUpgradeAndStartNextWave(UpgradeType upgrade)
     {
         _player.ApplyUpgrade(upgrade);
+        if (_isBossPreparation)
+        {
+            _wave = FinalBossWave;
+            _boss = new BossEnemy(new Vector2(ScreenWidth / 2f, ArenaBounds.Top + 90f));
+            _enemyProjectiles.Clear();
+            _powerUps.Clear();
+            _bossContactCooldown = 0f;
+            _isBossPreparation = false;
+            _displayedHealth = _player.Health;
+            _statusMessage = "BOSS ONLINE";
+            _statusTimer = 2f;
+            _screenFade = 0f;
+            _state = GameState.BossBattle;
+            _sounds.PlayWaveStart();
+            return;
+        }
+
         _wave++;
         _spawnTimer = 1.2f;
         _powerUpTimer = 8f;
@@ -268,6 +285,65 @@ public sealed class Game1 : Game
             _powerUps.Add(new PowerUp(position, PowerUpType.Health));
             _powerUpTimer = 20f;
         }
+    }
+
+    private void UpdateBossBattle(float deltaTime, KeyboardState keyboard)
+    {
+        if (_boss is null)
+        {
+            EndVictory();
+            return;
+        }
+
+        _elapsedSurvivalTime += deltaTime;
+        _player.Move(ReadMovement(keyboard), deltaTime, ArenaBounds);
+        _player.Update(deltaTime);
+        TryFirePlayer(keyboard);
+
+        _boss.Update(_player.Position, deltaTime);
+        if (_boss.TryFire(deltaTime))
+        {
+            Vector2 direction = MathUtilities.Direction(_boss.Position, _player.Position);
+            if (direction != Vector2.Zero)
+            {
+                _enemyProjectiles.Add(new EnemyProjectile(_boss.Position, direction, BossEnemy.ProjectileDamage));
+                _sounds.PlayEnemyHit();
+            }
+        }
+
+        foreach (Projectile projectile in _projectiles)
+            projectile.Update(deltaTime);
+        foreach (EnemyProjectile projectile in _enemyProjectiles)
+            projectile.Update(deltaTime);
+
+        HandleBossCollisions(deltaTime);
+        RemoveExpiredProjectiles();
+        RemoveExpiredEnemyProjectiles();
+        UpdateScoring(deltaTime);
+
+        if (_statusTimer > 0f)
+            _statusTimer -= deltaTime;
+        _displayedHealth = MathHelper.Lerp(_displayedHealth, _player.Health, 8f * deltaTime);
+        _screenFade = MathHelper.Lerp(_screenFade, 0f, 5f * deltaTime);
+        float dangerTarget = _player.Health <= 30 ? 1f : 0f;
+        _dangerTint = MathHelper.Lerp(_dangerTint, dangerTarget, 3f * deltaTime);
+
+        if (!_player.IsAlive)
+            EndGame();
+    }
+
+    private void TryFirePlayer(KeyboardState keyboard)
+    {
+        if (!IsNewKeyPress(keyboard, Keys.Space) || !_player.TryShoot())
+            return;
+
+        foreach (Vector2 direction in AttackPattern.CreateDirections(
+            _player.FacingDirection,
+            _player.ProjectileCount))
+        {
+            _projectiles.Add(new Projectile(_player.Position, direction, _player.ProjectileDamage));
+        }
+        _sounds.PlayFire();
     }
 
     private Enemy CreateEnemy(int spawnNumber)
@@ -351,12 +427,85 @@ public sealed class Game1 : Game
         }
     }
 
+    private void HandleBossCollisions(float deltaTime)
+    {
+        if (_boss is null)
+            return;
+
+        for (int projectileIndex = _projectiles.Count - 1; projectileIndex >= 0; projectileIndex--)
+        {
+            Projectile playerProjectile = _projectiles[projectileIndex];
+            bool blocked = false;
+            for (int enemyProjectileIndex = _enemyProjectiles.Count - 1;
+                enemyProjectileIndex >= 0;
+                enemyProjectileIndex--)
+            {
+                if (!CollisionHelper.Intersects(playerProjectile.Bounds, _enemyProjectiles[enemyProjectileIndex].Bounds))
+                    continue;
+
+                _projectiles.RemoveAt(projectileIndex);
+                _enemyProjectiles.RemoveAt(enemyProjectileIndex);
+                _sounds.PlayEnemyHit();
+                blocked = true;
+                break;
+            }
+
+            if (blocked)
+                continue;
+
+            if (!CollisionHelper.Intersects(playerProjectile.Bounds, _boss.Bounds))
+                continue;
+
+            bool defeated = _boss.TakeDamage(playerProjectile.Damage);
+            _projectiles.RemoveAt(projectileIndex);
+            if (defeated)
+            {
+                _scoreManager.AddEnemyDefeat(_boss.ScoreValue);
+                EndVictory();
+                return;
+            }
+            _sounds.PlayEnemyHit();
+        }
+
+        _bossContactCooldown = Math.Max(0f, _bossContactCooldown - deltaTime);
+        if (_bossContactCooldown <= 0f && CollisionHelper.Intersects(_player.Bounds, _boss.Bounds))
+        {
+            _player.TakeDamage(_boss.ContactDamage);
+            _bossContactCooldown = 1f;
+            _sounds.PlayPlayerDamage();
+            _statusMessage = $"-{_boss.ContactDamage} HEALTH";
+            _statusTimer = 0.8f;
+        }
+
+        for (int index = _enemyProjectiles.Count - 1; index >= 0; index--)
+        {
+            EnemyProjectile projectile = _enemyProjectiles[index];
+            if (!CollisionHelper.Intersects(_player.Bounds, projectile.Bounds))
+                continue;
+
+            _player.TakeDamage(projectile.Damage);
+            _enemyProjectiles.RemoveAt(index);
+            _sounds.PlayPlayerDamage();
+            _statusMessage = $"-{projectile.Damage} HEALTH";
+            _statusTimer = 0.8f;
+        }
+    }
+
     private void RemoveExpiredProjectiles()
     {
         for (int index = _projectiles.Count - 1; index >= 0; index--)
         {
             if (!_projectiles[index].IsActive || !ArenaBounds.Intersects(_projectiles[index].Bounds))
                 _projectiles.RemoveAt(index);
+        }
+    }
+
+    private void RemoveExpiredEnemyProjectiles()
+    {
+        for (int index = _enemyProjectiles.Count - 1; index >= 0; index--)
+        {
+            if (!_enemyProjectiles[index].IsActive || !ArenaBounds.Intersects(_enemyProjectiles[index].Bounds))
+                _enemyProjectiles.RemoveAt(index);
         }
     }
 
@@ -383,12 +532,27 @@ public sealed class Game1 : Game
         }
     }
 
+    private void EndVictory()
+    {
+        _state = GameState.Victory;
+        _screenFade = 0f;
+        _sounds.PlayWaveStart();
+        _music.EnterGameOver();
+        if (_scoreManager.Score > _highScore)
+        {
+            _highScore = _scoreManager.Score;
+            HighScoreStorage.Save(GetHighScorePath(), _highScore);
+        }
+    }
+
     private void ResetGame()
     {
         _player = new Player(new Vector2(ScreenWidth / 2f, ScreenHeight / 2f));
         _enemies.Clear();
         _projectiles.Clear();
+        _enemyProjectiles.Clear();
         _powerUps.Clear();
+        _boss = null;
         _scoreManager.Reset();
         _spawnTimer = DifficultyCalculator.SpawnInterval(1);
         _powerUpTimer = 12f;
@@ -399,6 +563,8 @@ public sealed class Game1 : Game
         _wave = 1;
         _spawnNumber = 0;
         _enemiesSpawnedThisWave = 0;
+        _isBossPreparation = false;
+        _bossContactCooldown = 0f;
         _statusTimer = 0f;
         _statusMessage = string.Empty;
     }
@@ -417,6 +583,8 @@ public sealed class Game1 : Game
             DrawHud();
             if (_state == GameState.GameOver)
                 DrawGameOverScreen();
+            else if (_state == GameState.Victory)
+                DrawVictoryScreen();
             else if (_state == GameState.UpgradeSelection)
                 DrawUpgradeSelectionScreen();
         }
@@ -481,6 +649,9 @@ public sealed class Game1 : Game
             DrawBorder(projectile.Bounds, 2, new Color(255, 242, 164));
         }
 
+        foreach (EnemyProjectile projectile in _enemyProjectiles)
+            DrawPixelBox(projectile.Bounds, new Color(218, 83, 255), new Color(255, 173, 255));
+
         foreach (Enemy enemy in _enemies)
         {
             bool isTank = enemy is TankEnemy;
@@ -490,6 +661,16 @@ public sealed class Game1 : Game
             DrawPixelBox(enemy.Bounds, colour, isTank ? new Color(220, 151, 255) : new Color(255, 150, 132));
             DrawEnemyDetails(enemy, isTank);
             DrawEnemyHealth(enemy);
+        }
+
+        if (_boss is not null)
+        {
+            Color bossColour = _boss.HitFlash > 0f ? Color.White : new Color(124, 58, 190);
+            DrawPixelBox(_boss.Bounds, bossColour, new Color(228, 142, 255));
+            Rectangle bossCore = new(_boss.Bounds.Center.X - 15, _boss.Bounds.Center.Y - 15, 30, 30);
+            DrawRectangle(bossCore, Ink);
+            DrawBorder(bossCore, 4, Gold);
+            DrawEnemyHealth(_boss);
         }
 
         DrawPixelBox(_player.Bounds, Blue, new Color(143, 224, 255));
@@ -526,7 +707,8 @@ public sealed class Game1 : Game
 
         DrawStatPanel(new Rectangle(12, 10, 172, 44), "SCORE", _scoreManager.Score.ToString(), Gold);
         DrawStatPanel(new Rectangle(192, 10, 166, 44), "HIGH", _highScore.ToString(), SoftWhite);
-        DrawStatPanel(new Rectangle(366, 10, 126, 44), "WAVE", _wave.ToString(), Gold);
+        DrawStatPanel(new Rectangle(366, 10, 126, 44), _state == GameState.BossBattle ? "BOSS" : "WAVE",
+            _wave.ToString(), Gold);
         DrawStatPanel(new Rectangle(500, 10, 160, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite);
 
         Rectangle healthPanel = new(668, 10, 344, 44);
@@ -555,6 +737,12 @@ public sealed class Game1 : Game
             DrawPanel(statusPanel, PanelDark, Cyan);
             DrawCentredText($"{enemiesRemaining} ENEMIES LEFT", statusPanel, SoftWhite);
         }
+        else if (_state == GameState.BossBattle)
+        {
+            Rectangle statusPanel = new(ScreenWidth / 2 - 125, 88, 250, 42);
+            DrawPanel(statusPanel, PanelDark, Crimson);
+            DrawCentredText("BLOCK OR DODGE", statusPanel, SoftWhite);
+        }
 
         Rectangle controlsPanel = new(132, 570, 760, 28);
         DrawRectangle(controlsPanel, PanelDark);
@@ -573,15 +761,20 @@ public sealed class Game1 : Game
 
         Rectangle panel = new(54, 112, 916, 382);
         DrawPanel(panel, PanelDark * alpha, Gold * alpha);
-        DrawCentredText($"WAVE {_wave} CLEAR", new Rectangle(0, 132, ScreenWidth, 46), Gold * alpha);
-        DrawCentredText("CHOOSE ONE PERMANENT UPGRADE", new Rectangle(0, 174, ScreenWidth, 30),
+        DrawCentredText(_isBossPreparation ? "BOSS PREP" : $"WAVE {_wave} CLEAR",
+            new Rectangle(0, 132, ScreenWidth, 46), Gold * alpha);
+        DrawCentredText(_isBossPreparation ? "CHOOSE ONE UPGRADE FOR THE FINAL BATTLE" : "CHOOSE ONE PERMANENT UPGRADE",
+            new Rectangle(0, 174, ScreenWidth, 30),
             SoftWhite * alpha);
 
         MouseState mouse = Mouse.GetState();
         DrawUpgradeCard(HealthUpgradeCard, "1  CORE BOOST", "+25 MAX HP", $"CURRENT {_player.MaximumHealth}",
             UpgradeType.MaxHealth, mouse, alpha);
-        DrawUpgradeCard(DoubleShotUpgradeCard, "2  DOUBLE SHOT", "+1 PROJECTILE", $"CURRENT {_player.ProjectileCount}",
-            UpgradeType.DoubleShot, mouse, alpha);
+        DrawUpgradeCard(DoubleShotUpgradeCard,
+            _isBossPreparation ? "2  TRIPLE SHOT" : "2  DOUBLE SHOT",
+            _isBossPreparation ? "3 PROJECTILES" : "+1 PROJECTILE",
+            $"CURRENT {_player.ProjectileCount}",
+            _isBossPreparation ? UpgradeType.TripleShot : UpgradeType.DoubleShot, mouse, alpha);
         DrawUpgradeCard(DamageUpgradeCard, "3  DAMAGE CHIP", "+5 BULLET DAMAGE", $"CURRENT {_player.ProjectileDamage}",
             UpgradeType.BulletDamage, mouse, alpha);
 
@@ -641,6 +834,22 @@ public sealed class Game1 : Game
         DrawStatPanel(new Rectangle(314, 235, 190, 44), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
         DrawStatPanel(new Rectangle(520, 235, 190, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
         DrawStatPanel(new Rectangle(390, 292, 244, 44), "HIGH", _highScore.ToString(), Gold * alpha);
+        DrawButton("PLAY AGAIN", alpha);
+    }
+
+    private void DrawVictoryScreen()
+    {
+        float alpha = Math.Clamp(_screenFade, 0f, 1f);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Ink * (0.82f * alpha));
+        Rectangle panel = new(208, 112, 608, 382);
+        DrawPanel(panel, PanelDark * alpha, Gold * alpha);
+        DrawRectangle(new Rectangle(220, 124, 584, 8), Cyan * alpha);
+        DrawCentredText("ARENA SECURED", new Rectangle(0, 165, ScreenWidth, 54), Gold * alpha);
+        DrawCentredText("FINAL GUARDIAN DEFEATED", new Rectangle(0, 214, ScreenWidth, 30),
+            SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(314, 264, 190, 44), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(520, 264, 190, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
+        DrawStatPanel(new Rectangle(390, 321, 244, 44), "HIGH", _highScore.ToString(), Gold * alpha);
         DrawButton("PLAY AGAIN", alpha);
     }
 

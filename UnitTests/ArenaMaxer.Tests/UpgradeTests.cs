@@ -44,6 +44,16 @@ public sealed class UpgradeTests
         Assert.That(player.ProjectileDamage, Is.EqualTo(Projectile.DefaultDamage + 5));
     }
 
+    [Test]
+    public void TripleShotUpgrade_ProvidesThreeProjectilesForBossPreparation()
+    {
+        Player player = new(Vector2.Zero);
+
+        player.ApplyUpgrade(UpgradeType.TripleShot);
+
+        Assert.That(player.ProjectileCount, Is.EqualTo(3));
+    }
+
     [TestCase(1)]
     [TestCase(2)]
     [TestCase(3)]
