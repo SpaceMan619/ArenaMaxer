@@ -11,7 +11,7 @@ ArenaMaxer is a fast-paced 2D survival game built with C# and MonoGame. Defend
 the arena against an escalating enemy swarm, collect health power-ups, and chase
 a new high score.
 
-Current release: **v0.5**
+Current release: **v1.0**
 
 ## Gameplay
 
@@ -37,6 +37,7 @@ between sessions.
 | Shoot | Space |
 | Pause / resume | Escape or Enter during a run |
 | Start / restart | Enter or Play button |
+| View credits | C or Credits button on the main screen |
 | Choose wave upgrade | Click a card or press 1, 2, or 3 |
 | Quit | Escape from the main screen |
 
@@ -86,6 +87,13 @@ Current result: **15 passed, 0 failed**.
 - Section-based soundtrack playback with timed fades and looping
 - Original code-generated pulse/noise arcade sound effects
 - XML documentation embedded in the C# source
+
+## Credits
+
+- Game developed by **Project Future**
+- Theme music: **ArenaMaxer Theme** (`ThemeMusic.ogg`), supplied by Project Future
+- Original procedural sound effects generated in C#
+- Built with C# and MonoGame
 
 ## Documentation
 

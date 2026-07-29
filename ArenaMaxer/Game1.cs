@@ -17,8 +17,11 @@ public sealed class Game1 : Game
     public const int ScreenHeight = 600;
     private const int FinalBossWave = 5;
     private static readonly Rectangle ArenaBounds = new(20, 76, ScreenWidth - 40, ScreenHeight - 108);
-    private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 355, 220, 58);
-    private static readonly Rectangle VictoryPlayButton = new(ScreenWidth / 2 - 110, 430, 220, 58);
+    private static readonly Rectangle PlayButton = new(ScreenWidth / 2 - 110, 340, 220, 58);
+    private static readonly Rectangle CreditsButton = new(ScreenWidth / 2 - 110, 410, 220, 58);
+    private static readonly Rectangle CreditsBackButton = new(ScreenWidth / 2 - 110, 468, 220, 58);
+    private static readonly Rectangle EndingPlayButton = new(270, 430, 220, 58);
+    private static readonly Rectangle EndingMenuButton = new(534, 430, 220, 58);
     private static readonly Rectangle PauseResumeButton = new(ScreenWidth / 2 - 110, 314, 220, 58);
     private static readonly Rectangle PauseMenuButton = new(ScreenWidth / 2 - 110, 388, 220, 58);
     private static readonly Rectangle HealthUpgradeCard = new(92, 226, 260, 210);
@@ -80,7 +83,7 @@ public sealed class Game1 : Game
         };
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
-        Window.Title = "ArenaMaxer v0.5";
+        Window.Title = "ArenaMaxer v1.0";
     }
 
     protected override void LoadContent()
@@ -110,10 +113,13 @@ public sealed class Game1 : Game
 
         bool enterPressed = IsNewKeyPress(keyboard, Keys.Enter);
         bool escapePressed = IsNewKeyPress(keyboard, Keys.Escape);
-        Rectangle activeButton = _state == GameState.Victory ? VictoryPlayButton : PlayButton;
         bool clicked = mouse.LeftButton == ButtonState.Pressed
             && _previousMouse.LeftButton == ButtonState.Released;
-        bool clickedPlay = clicked && activeButton.Contains(mouse.Position);
+        bool clickedPlay = clicked && PlayButton.Contains(mouse.Position);
+        bool clickedCredits = clicked && CreditsButton.Contains(mouse.Position);
+        bool clickedCreditsBack = clicked && CreditsBackButton.Contains(mouse.Position);
+        bool clickedEndingPlay = clicked && EndingPlayButton.Contains(mouse.Position);
+        bool clickedEndingMenu = clicked && EndingMenuButton.Contains(mouse.Position);
         bool clickedResume = clicked && PauseResumeButton.Contains(mouse.Position);
         bool clickedMenu = clicked && PauseMenuButton.Contains(mouse.Position);
 
@@ -123,12 +129,25 @@ public sealed class Game1 : Game
                 _screenFade = MathHelper.Lerp(_screenFade, 1f, 5f * deltaTime);
                 if (escapePressed)
                     Exit();
-                if (enterPressed || clickedPlay)
+                else if (IsNewKeyPress(keyboard, Keys.C) || clickedCredits)
+                {
+                    _state = GameState.Credits;
+                    _screenFade = 0f;
+                }
+                else if (enterPressed || clickedPlay)
                 {
                     ResetGame();
                     _state = GameState.Playing;
                     _screenFade = 0f;
                     _music.StartGameplay();
+                }
+                break;
+            case GameState.Credits:
+                _screenFade = MathHelper.Lerp(_screenFade, 1f, 5f * deltaTime);
+                if (escapePressed || enterPressed || clickedCreditsBack)
+                {
+                    _state = GameState.Start;
+                    _screenFade = 0f;
                 }
                 break;
             case GameState.Playing:
@@ -159,9 +178,9 @@ public sealed class Game1 : Game
             case GameState.GameOver:
             case GameState.Victory:
                 _screenFade = MathHelper.Lerp(_screenFade, 1f, 4f * deltaTime);
-                if (escapePressed)
+                if (escapePressed || clickedEndingMenu)
                     ReturnToMainMenu();
-                else if (enterPressed || clickedPlay)
+                else if (enterPressed || clickedEndingPlay)
                 {
                     ResetGame();
                     _state = GameState.Playing;
@@ -636,6 +655,8 @@ public sealed class Game1 : Game
         DrawArena();
         if (_state == GameState.Start)
             DrawStartScreen();
+        else if (_state == GameState.Credits)
+            DrawCreditsScreen();
         else
         {
             DrawEntities();
@@ -865,37 +886,65 @@ public sealed class Game1 : Game
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
         DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Ink * (0.76f * alpha));
-        Rectangle menuPanel = new(178, 104, 668, 398);
+        Rectangle menuPanel = new(178, 66, 668, 480);
         DrawPanel(menuPanel, PanelDark * alpha, Cyan * alpha);
-        DrawRectangle(new Rectangle(190, 116, 644, 8), Gold * alpha);
-        DrawRectangle(new Rectangle(190, 482, 644, 8), Blue * alpha);
+        DrawRectangle(new Rectangle(190, 78, 644, 8), Gold * alpha);
+        DrawRectangle(new Rectangle(190, 526, 644, 8), Blue * alpha);
 
-        DrawCentredText("A R E N A M A X E R", new Rectangle(0, 150, ScreenWidth, 58), Cyan * alpha);
-        DrawCentredText("SURVIVE  /  SCORE  /  MAX OUT", new Rectangle(0, 210, ScreenWidth, 36), Gold * alpha);
-        DrawCentredText("RED  RUSHER    PURPLE  TANK    GREEN  MEDKIT",
-            new Rectangle(0, 270, ScreenWidth, 34), new Color(184, 204, 221) * alpha);
+        DrawCentredText("A R E N A M A X E R", new Rectangle(0, 112, ScreenWidth, 58), Cyan * alpha);
+        DrawCentredText("SURVIVE  /  UPGRADE  /  DEFEND", new Rectangle(0, 174, ScreenWidth, 36), Gold * alpha);
+        DrawCentredText("CLEAR FOUR WAVES AND DEFEAT THE FINAL GUARDIAN",
+            new Rectangle(0, 224, ScreenWidth, 30), new Color(184, 204, 221) * alpha);
+        DrawCentredText("MOVE: WASD OR ARROWS     FIRE: SPACE",
+            new Rectangle(0, 265, ScreenWidth, 28), SoftWhite * alpha);
         DrawButton("PLAY", alpha);
-        DrawCentredText("CLICK PLAY OR PRESS ENTER", new Rectangle(0, 427, ScreenWidth, 32),
+        DrawButton("CREDITS", alpha, CreditsButton);
+        DrawCentredText("GAME DEVELOPED BY PROJECT FUTURE", new Rectangle(0, 484, ScreenWidth, 24),
             new Color(151, 181, 205) * alpha);
-        DrawCentredText("VERSION 0.5", new Rectangle(700, 463, 126, 24), Gold * alpha);
+        DrawCentredText("VERSION 1.0", new Rectangle(700, 510, 126, 24), Gold * alpha);
         if (!_music.IsAvailable)
         {
-            DrawCentredText("MUSIC UNAVAILABLE", new Rectangle(198, 463, 260, 24), Crimson * alpha);
+            DrawCentredText("MUSIC UNAVAILABLE", new Rectangle(198, 510, 260, 24), Crimson * alpha);
         }
+    }
+
+    private void DrawCreditsScreen()
+    {
+        float alpha = Math.Clamp(_screenFade, 0f, 1f);
+        DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Ink * (0.82f * alpha));
+        Rectangle panel = new(142, 58, 740, 488);
+        DrawPanel(panel, PanelDark * alpha, Gold * alpha);
+        DrawRectangle(new Rectangle(154, 70, 716, 8), Cyan * alpha);
+
+        DrawCentredText("C R E D I T S", new Rectangle(0, 100, ScreenWidth, 48), Gold * alpha);
+        DrawCentredText("GAME DEVELOPED BY PROJECT FUTURE", new Rectangle(0, 158, ScreenWidth, 30),
+            SoftWhite * alpha);
+        DrawCentredText("MUSIC", new Rectangle(0, 210, ScreenWidth, 28), Cyan * alpha);
+        DrawCentredText("ARENAMAXER THEME  /  THEMEMUSIC.OGG", new Rectangle(0, 246, ScreenWidth, 26),
+            SoftWhite * alpha);
+        DrawCentredText("TRACK PROVIDED BY PROJECT FUTURE", new Rectangle(0, 280, ScreenWidth, 26),
+            new Color(184, 204, 221) * alpha);
+        DrawCentredText("SOUND EFFECTS", new Rectangle(0, 326, ScreenWidth, 28), Cyan * alpha);
+        DrawCentredText("ORIGINAL PROCEDURAL AUDIO GENERATED IN C SHARP",
+            new Rectangle(0, 360, ScreenWidth, 26), SoftWhite * alpha);
+        DrawCentredText("BUILT WITH C SHARP AND MONOGAME", new Rectangle(0, 408, ScreenWidth, 26),
+            new Color(184, 204, 221) * alpha);
+        DrawButton("BACK", alpha, CreditsBackButton);
     }
 
     private void DrawGameOverScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
         DrawRectangle(new Rectangle(0, 0, ScreenWidth, ScreenHeight), Color.Black * (0.78f * alpha));
-        Rectangle gameOverPanel = new(208, 112, 608, 382);
+        Rectangle gameOverPanel = new(208, 82, 608, 450);
         DrawPanel(gameOverPanel, PanelDark * alpha, Crimson * alpha);
         DrawRectangle(new Rectangle(220, 124, 584, 8), Crimson * alpha);
         DrawCentredText("SYSTEM DOWN", new Rectangle(0, 165, ScreenWidth, 54), Crimson * alpha);
         DrawStatPanel(new Rectangle(314, 235, 190, 44), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
         DrawStatPanel(new Rectangle(520, 235, 190, 44), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
         DrawStatPanel(new Rectangle(390, 292, 244, 44), "HIGH", _highScore.ToString(), Gold * alpha);
-        DrawButton("PLAY AGAIN", alpha);
+        DrawButton("PLAY AGAIN", alpha, EndingPlayButton);
+        DrawButton("MAIN MENU", alpha, EndingMenuButton);
     }
 
     private void DrawPauseScreen()
@@ -929,7 +978,8 @@ public sealed class Game1 : Game
         DrawStatPanel(new Rectangle(278, 300, 218, 48), "SCORE", _scoreManager.Score.ToString(), SoftWhite * alpha);
         DrawStatPanel(new Rectangle(528, 300, 218, 48), "TIME", $"{(int)_elapsedSurvivalTime}s", SoftWhite * alpha);
         DrawStatPanel(new Rectangle(390, 364, 244, 48), "HIGH", _highScore.ToString(), Gold * alpha);
-        DrawButton("PLAY AGAIN", alpha, VictoryPlayButton);
+        DrawButton("PLAY AGAIN", alpha, EndingPlayButton);
+        DrawButton("MAIN MENU", alpha, EndingMenuButton);
     }
 
     private void DrawButton(string text, float alpha)
