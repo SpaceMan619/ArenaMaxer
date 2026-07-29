@@ -171,7 +171,9 @@ public sealed class Game1 : Game
                 break;
         }
 
-        _music.Update(deltaTime);
+        // freezing this timer keeps the fade exactly where it was when paused.
+        if (_state != GameState.Paused)
+            _music.Update(deltaTime);
 
         _previousKeyboard = keyboard;
         _previousMouse = mouse;
@@ -205,18 +207,11 @@ public sealed class Game1 : Game
     private void UpdatePlaying(float deltaTime, KeyboardState keyboard)
     {
         _elapsedSurvivalTime += deltaTime;
-        Vector2 movement = ReadMovement(keyboard);
-        _player.Move(movement, deltaTime, ArenaBounds);
-        _player.Update(deltaTime);
-
-        TryFirePlayer(keyboard);
+        UpdatePlayerControls(deltaTime, keyboard);
 
         UpdateSpawning(deltaTime);
-
-        foreach (Enemy enemy in _enemies)
-            enemy.Update(_player.Position, deltaTime);
-        foreach (Projectile projectile in _projectiles)
-            projectile.Update(deltaTime);
+        UpdateEnemies(deltaTime);
+        UpdatePlayerProjectiles(deltaTime);
 
         HandleCollisions();
         RemoveExpiredProjectiles();
@@ -232,17 +227,7 @@ public sealed class Game1 : Game
             return;
         }
 
-        if (_statusTimer > 0f)
-            _statusTimer -= deltaTime;
-
-        // Three distinct Lerp uses: animated health, screen transitions, and danger tint.
-        _displayedHealth = MathHelper.Lerp(_displayedHealth, _player.Health, 8f * deltaTime);
-        _screenFade = MathHelper.Lerp(_screenFade, 0f, 5f * deltaTime);
-        float dangerTarget = _player.Health <= 30 ? 1f : 0f;
-        _dangerTint = MathHelper.Lerp(_dangerTint, dangerTarget, 3f * deltaTime);
-
-        if (!_player.IsAlive)
-            EndGame();
+        UpdateGameplayFeedback(deltaTime);
     }
 
     private void BeginUpgradeSelection(bool isBossPreparation)
@@ -349,9 +334,7 @@ public sealed class Game1 : Game
         }
 
         _elapsedSurvivalTime += deltaTime;
-        _player.Move(ReadMovement(keyboard), deltaTime, ArenaBounds);
-        _player.Update(deltaTime);
-        TryFirePlayer(keyboard);
+        UpdatePlayerControls(deltaTime, keyboard);
 
         _boss.Update(_player.Position, deltaTime);
         if (_boss.TryFire(deltaTime))
@@ -374,11 +357,8 @@ public sealed class Game1 : Game
             _statusTimer = 1.1f;
         }
 
-        foreach (Enemy enemy in _enemies)
-            enemy.Update(_player.Position, deltaTime);
-
-        foreach (Projectile projectile in _projectiles)
-            projectile.Update(deltaTime);
+        UpdateEnemies(deltaTime);
+        UpdatePlayerProjectiles(deltaTime);
         foreach (EnemyProjectile projectile in _enemyProjectiles)
             projectile.Update(deltaTime);
 
@@ -388,8 +368,35 @@ public sealed class Game1 : Game
         RemoveExpiredEnemyProjectiles();
         UpdateScoring(deltaTime);
 
+        UpdateGameplayFeedback(deltaTime);
+    }
+
+    private void UpdatePlayerControls(float deltaTime, KeyboardState keyboard)
+    {
+        Vector2 movement = ReadMovement(keyboard);
+        _player.Move(movement, deltaTime, ArenaBounds);
+        _player.Update(deltaTime);
+        TryFirePlayer(keyboard);
+    }
+
+    private void UpdateEnemies(float deltaTime)
+    {
+        foreach (Enemy enemy in _enemies)
+            enemy.Update(_player.Position, deltaTime);
+    }
+
+    private void UpdatePlayerProjectiles(float deltaTime)
+    {
+        foreach (Projectile projectile in _projectiles)
+            projectile.Update(deltaTime);
+    }
+
+    private void UpdateGameplayFeedback(float deltaTime)
+    {
         if (_statusTimer > 0f)
             _statusTimer -= deltaTime;
+
+        // these three lerps smooth the health bar, screen fade, and danger tint.
         _displayedHealth = MathHelper.Lerp(_displayedHealth, _player.Health, 8f * deltaTime);
         _screenFade = MathHelper.Lerp(_screenFade, 0f, 5f * deltaTime);
         float dangerTarget = _player.Health <= 30 ? 1f : 0f;
