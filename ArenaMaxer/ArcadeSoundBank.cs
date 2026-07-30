@@ -3,10 +3,7 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>
-/// Creates restrained chiptune-style feedback from pulse, triangle, and noise voices.
-/// Effects are generated in memory, so no third-party sound-effect assets are required.
-/// </summary>
+/// <summary>generates the game's short arcade sound effects in memory.</summary>
 public sealed class ArcadeSoundBank : IDisposable
 {
     private const int SampleRate = 22050;
@@ -18,6 +15,7 @@ public sealed class ArcadeSoundBank : IDisposable
     private SoundEffect _waveStart;
     private SoundEffect _gameOver;
 
+    // creates each sound once so playback does not rebuild audio during the game.
     public ArcadeSoundBank()
     {
         try
@@ -36,14 +34,22 @@ public sealed class ArcadeSoundBank : IDisposable
         }
     }
 
+    // plays the short sound used when the player fires.
     public void PlayFire() => _fire?.Play(0.34f, 0f, 0f);
+    // plays the impact sound for a successful enemy hit.
     public void PlayEnemyHit() => _enemyHit?.Play(0.42f, 0f, 0f);
+    // plays the sound used when an enemy is defeated.
     public void PlayEnemyDefeat() => _enemyDefeat?.Play(0.46f, 0f, 0f);
+    // plays the heavier warning sound for player damage.
     public void PlayPlayerDamage() => _playerDamage?.Play(0.52f, 0f, 0f);
+    // plays the rising sound for collecting health.
     public void PlayPickup() => _pickup?.Play(0.44f, 0f, 0f);
+    // plays the short signal used when a wave begins.
     public void PlayWaveStart() => _waveStart?.Play(0.46f, 0f, 0f);
+    // plays the falling sound used at game over.
     public void PlayGameOver() => _gameOver?.Play(0.54f, 0f, 0f);
 
+    // creates a quick descending pulse for the player's shot.
     private static SoundEffect CreateFire()
     {
         uint noise = 0xA341316Cu;
@@ -55,6 +61,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // creates a noisy impact for an enemy taking damage.
     private static SoundEffect CreateEnemyHit()
     {
         uint noise = 0xC8013EA4u;
@@ -66,6 +73,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // creates a short descending phrase for an enemy defeat.
     private static SoundEffect CreateEnemyDefeat()
     {
         float[] notes = { 659.25f, 493.88f, 329.63f };
@@ -79,6 +87,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // creates a low noisy hit sound for player damage.
     private static SoundEffect CreatePlayerDamage()
     {
         uint noise = 0x7E95761Eu;
@@ -91,6 +100,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // creates a rising three-note phrase for a pickup.
     private static SoundEffect CreatePickup()
     {
         float[] notes = { 523.25f, 659.25f, 783.99f };
@@ -103,6 +113,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // creates a rising phrase that announces a new wave.
     private static SoundEffect CreateWaveStart()
     {
         float[] notes = { 392f, 523.25f, 659.25f, 783.99f };
@@ -115,6 +126,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // creates the longer falling phrase used at game over.
     private static SoundEffect CreateGameOver()
     {
         float[] notes = { 392f, 311.13f, 246.94f, 196f };
@@ -127,6 +139,7 @@ public sealed class ArcadeSoundBank : IDisposable
         });
     }
 
+    // converts a voice formula into mono pcm samples MonoGame can play.
     private static SoundEffect Build(float durationSeconds, Func<float, float, float> voice)
     {
         int sampleCount = (int)(SampleRate * durationSeconds);
@@ -145,18 +158,21 @@ public sealed class ArcadeSoundBank : IDisposable
         return new SoundEffect(pcm, SampleRate, AudioChannels.Mono);
     }
 
+    // creates a square-like wave with an adjustable duty cycle.
     private static float Pulse(float time, float frequency, float dutyCycle)
     {
         float phase = time * frequency - MathF.Floor(time * frequency);
         return phase < dutyCycle ? 1f : -1f;
     }
 
+    // creates a smoother triangle wave from the current phase.
     private static float Triangle(float time, float frequency)
     {
         float phase = time * frequency - MathF.Floor(time * frequency);
         return 1f - 4f * MathF.Abs(phase - 0.5f);
     }
 
+    // creates repeatable pseudo-random noise for crunchy effects.
     private static float NextNoise(ref uint state)
     {
         state ^= state << 13;
@@ -165,6 +181,7 @@ public sealed class ArcadeSoundBank : IDisposable
         return (state / (float)uint.MaxValue) * 2f - 1f;
     }
 
+    // fades a sound in quickly and then lets it decay.
     private static float PercussiveEnvelope(float progress, float attackPortion, float decayPower)
     {
         float attack = attackPortion <= 0f ? 1f : Math.Min(1f, progress / attackPortion);
@@ -172,8 +189,10 @@ public sealed class ArcadeSoundBank : IDisposable
         return attack * decay;
     }
 
+    // blends between two values by the requested amount.
     private static float Mix(float start, float end, float amount) => start + (end - start) * amount;
 
+    // releases every generated sound when the game closes.
     public void Dispose()
     {
         _fire?.Dispose();

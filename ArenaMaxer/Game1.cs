@@ -7,10 +7,7 @@ using System.IO;
 
 namespace ArenaMaxer;
 
-/// <summary>
-/// Coordinates ArenaMaxer's game states, input, entity updates, collisions, and drawing.
-/// Gameplay rules live in separate classes so they can be tested without a graphics device.
-/// </summary>
+/// <summary>coordinates the game's states, input, collisions, audio, and drawing.</summary>
 public sealed class Game1 : Game
 {
     public const int ScreenWidth = 1024;
@@ -74,6 +71,7 @@ public sealed class Game1 : Game
     private string _statusMessage = string.Empty;
     private float _statusTimer;
 
+    // configures the game window and content folder before loading begins.
     public Game1()
     {
         _graphics = new GraphicsDeviceManager(this)
@@ -83,9 +81,10 @@ public sealed class Game1 : Game
         };
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
-        Window.Title = "ArenaMaxer v1.0";
+        Window.Title = "ArenaMaxer v1.1";
     }
 
+    // creates graphics resources, loads audio, and resets the first run.
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -105,6 +104,7 @@ public sealed class Game1 : Game
         _state = GameState.Start;
     }
 
+    // reads input and updates only the logic allowed by the current game state.
     protected override void Update(GameTime gameTime)
     {
         KeyboardState keyboard = Keyboard.GetState();
@@ -199,6 +199,7 @@ public sealed class Game1 : Game
         base.Update(gameTime);
     }
 
+    // remembers the active state before freezing gameplay and music.
     private void PauseGame()
     {
         // keep the exact game state so resume returns to the right place.
@@ -208,6 +209,7 @@ public sealed class Game1 : Game
         _music.Pause();
     }
 
+    // returns to the exact state that was active before pausing.
     private void ResumeGame()
     {
         _state = _stateBeforePause;
@@ -215,6 +217,7 @@ public sealed class Game1 : Game
         _music.Resume();
     }
 
+    // resets the run and returns the soundtrack to its menu section.
     private void ReturnToMainMenu()
     {
         ResetGame();
@@ -223,6 +226,7 @@ public sealed class Game1 : Game
         _music.StartMenu();
     }
 
+    // updates one frame of a normal enemy wave.
     private void UpdatePlaying(float deltaTime, KeyboardState keyboard)
     {
         _elapsedSurvivalTime += deltaTime;
@@ -249,6 +253,7 @@ public sealed class Game1 : Game
         UpdateGameplayFeedback(deltaTime);
     }
 
+    // freezes combat and prepares the three upgrade choices.
     private void BeginUpgradeSelection(bool isBossPreparation)
     {
         // gameplay stops here so the player can choose without taking damage.
@@ -259,6 +264,7 @@ public sealed class Game1 : Game
         _projectiles.Clear();
     }
 
+    // reads keyboard or mouse input from the upgrade screen.
     private void UpdateUpgradeSelection(float deltaTime, KeyboardState keyboard, MouseState mouse)
     {
         _screenFade = MathHelper.Lerp(_screenFade, 1f, 5f * deltaTime);
@@ -286,6 +292,7 @@ public sealed class Game1 : Game
             ApplyUpgradeAndStartNextWave(selectedUpgrade.Value);
     }
 
+    // applies the chosen upgrade and starts the next normal or boss wave.
     private void ApplyUpgradeAndStartNextWave(UpgradeType upgrade)
     {
         _player.ApplyUpgrade(upgrade);
@@ -320,6 +327,7 @@ public sealed class Game1 : Game
         _sounds.PlayWaveStart();
     }
 
+    // controls enemy quotas, spawn timing, and occasional health pickups.
     private void UpdateSpawning(float deltaTime)
     {
         _spawnTimer -= deltaTime;
@@ -344,6 +352,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // updates the boss, reinforcements, hostile shots, and player combat.
     private void UpdateBossBattle(float deltaTime, KeyboardState keyboard)
     {
         if (_boss is null)
@@ -390,6 +399,7 @@ public sealed class Game1 : Game
         UpdateGameplayFeedback(deltaTime);
     }
 
+    // shares player movement and firing between normal and boss waves.
     private void UpdatePlayerControls(float deltaTime, KeyboardState keyboard)
     {
         Vector2 movement = ReadMovement(keyboard);
@@ -398,18 +408,21 @@ public sealed class Game1 : Game
         TryFirePlayer(keyboard);
     }
 
+    // gives every active enemy one movement update.
     private void UpdateEnemies(float deltaTime)
     {
         foreach (Enemy enemy in _enemies)
             enemy.Update(_player.Position, deltaTime);
     }
 
+    // moves every projectile currently fired by the player.
     private void UpdatePlayerProjectiles(float deltaTime)
     {
         foreach (Projectile projectile in _projectiles)
             projectile.Update(deltaTime);
     }
 
+    // smooths visual feedback and ends the run when health reaches zero.
     private void UpdateGameplayFeedback(float deltaTime)
     {
         if (_statusTimer > 0f)
@@ -425,6 +438,7 @@ public sealed class Game1 : Game
             EndGame();
     }
 
+    // creates the current single, double, or triple-shot attack.
     private void TryFirePlayer(KeyboardState keyboard)
     {
         if (!IsNewKeyPress(keyboard, Keys.Space) || !_player.TryShoot())
@@ -439,6 +453,7 @@ public sealed class Game1 : Game
         _sounds.PlayFire();
     }
 
+    // chooses a tank or rusher according to wave difficulty.
     private Enemy CreateEnemy(int spawnNumber)
     {
         Vector2 position = RandomEdgePosition();
@@ -447,6 +462,7 @@ public sealed class Game1 : Game
             : new RusherEnemy(position);
     }
 
+    // selects a random position along one edge of the arena.
     private Vector2 RandomEdgePosition()
     {
         int side = _random.Next(4);
@@ -459,6 +475,7 @@ public sealed class Game1 : Game
         };
     }
 
+    // resolves player, enemy, projectile, and power-up collisions.
     private void HandleCollisions()
     {
         for (int projectileIndex = _projectiles.Count - 1; projectileIndex >= 0; projectileIndex--)
@@ -521,6 +538,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // resolves dodge-only boss shots, boss damage, and contact damage.
     private void HandleBossCollisions(float deltaTime)
     {
         if (_boss is null)
@@ -569,6 +587,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // removes player projectiles after their lifetime ends.
     private void RemoveExpiredProjectiles()
     {
         for (int index = _projectiles.Count - 1; index >= 0; index--)
@@ -578,6 +597,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // removes hostile projectiles after their lifetime ends.
     private void RemoveExpiredEnemyProjectiles()
     {
         for (int index = _enemyProjectiles.Count - 1; index >= 0; index--)
@@ -587,6 +607,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // awards survival points once for each completed second.
     private void UpdateScoring(float deltaTime)
     {
         _survivalScoreTimer += deltaTime;
@@ -597,6 +618,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // saves the score and opens the game-over screen.
     private void EndGame()
     {
         _state = GameState.GameOver;
@@ -610,6 +632,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // saves the score and opens the victory screen.
     private void EndVictory()
     {
         _state = GameState.Victory;
@@ -623,6 +646,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // rebuilds all temporary gameplay state for a fresh run.
     private void ResetGame()
     {
         _player = new Player(new Vector2(ScreenWidth / 2f, ScreenHeight / 2f));
@@ -647,6 +671,7 @@ public sealed class Game1 : Game
         _statusMessage = string.Empty;
     }
 
+    // draws the arena first and then the screen that matches the game state.
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Ink);
@@ -675,6 +700,7 @@ public sealed class Game1 : Game
         base.Draw(gameTime);
     }
 
+    // draws the tiled arena floor, borders, and corner markers.
     private void DrawArena()
     {
         DrawRectangle(new Rectangle(ArenaBounds.X + 6, ArenaBounds.Y + 6, ArenaBounds.Width, ArenaBounds.Height), Shadow);
@@ -711,6 +737,7 @@ public sealed class Game1 : Game
             DrawRectangle(ArenaBounds, Crimson * (_dangerTint * 0.15f));
     }
 
+    // draws every active player, enemy, projectile, and pickup.
     private void DrawEntities()
     {
         foreach (PowerUp powerUp in _powerUps)
@@ -761,6 +788,7 @@ public sealed class Game1 : Game
         DrawPlayerFacingIndicator();
     }
 
+    // draws a small marker showing the player's firing direction.
     private void DrawPlayerFacingIndicator()
     {
         Vector2 facing = _player.FacingDirection;
@@ -772,6 +800,7 @@ public sealed class Game1 : Game
         DrawRectangle(indicator, new Color(168, 241, 255));
     }
 
+    // draws a health bar above enemies that need more than one hit.
     private void DrawEnemyHealth(Enemy enemy)
     {
         int width = enemy.Bounds.Width;
@@ -782,6 +811,7 @@ public sealed class Game1 : Game
         DrawRectangle(foreground, new Color(76, 230, 126));
     }
 
+    // draws score, wave, time, health, and control information.
     private void DrawHud()
     {
         DrawRectangle(new Rectangle(0, 0, ScreenWidth, 68), PanelDark);
@@ -836,6 +866,7 @@ public sealed class Game1 : Game
         DrawControlHint(new Rectangle(716, 572, 164, 24), "PAUSE", "ESC");
     }
 
+    // draws the paused choice between the three permanent upgrades.
     private void DrawUpgradeSelectionScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -864,6 +895,7 @@ public sealed class Game1 : Game
             new Color(151, 181, 205) * alpha);
     }
 
+    // draws one upgrade card with its title, benefit, and current value.
     private void DrawUpgradeCard(Rectangle area, string title, string benefit, string current,
         UpgradeType upgrade, MouseState mouse, float alpha)
     {
@@ -882,6 +914,7 @@ public sealed class Game1 : Game
             new Color(151, 181, 205) * alpha);
     }
 
+    // draws the game title, objective, controls, and main buttons.
     private void DrawStartScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -901,13 +934,14 @@ public sealed class Game1 : Game
         DrawButton("CREDITS", alpha, CreditsButton);
         DrawCentredText("GAME DEVELOPED BY PROJECT FUTURE", new Rectangle(0, 484, ScreenWidth, 24),
             new Color(151, 181, 205) * alpha);
-        DrawCentredText("VERSION 1.0", new Rectangle(700, 510, 126, 24), Gold * alpha);
+        DrawCentredText("VERSION 1.1", new Rectangle(700, 510, 126, 24), Gold * alpha);
         if (!_music.IsAvailable)
         {
             DrawCentredText("MUSIC UNAVAILABLE", new Rectangle(198, 510, 260, 24), Crimson * alpha);
         }
     }
 
+    // draws development, music, sound, and framework credits.
     private void DrawCreditsScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -932,6 +966,7 @@ public sealed class Game1 : Game
         DrawButton("BACK", alpha, CreditsBackButton);
     }
 
+    // draws the final score and navigation after the player loses.
     private void DrawGameOverScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -947,6 +982,7 @@ public sealed class Game1 : Game
         DrawButton("MAIN MENU", alpha, EndingMenuButton);
     }
 
+    // draws resume and main-menu choices over frozen gameplay.
     private void DrawPauseScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -963,6 +999,7 @@ public sealed class Game1 : Game
             new Color(151, 181, 205) * alpha);
     }
 
+    // draws the final score and navigation after defeating the boss.
     private void DrawVictoryScreen()
     {
         float alpha = Math.Clamp(_screenFade, 0f, 1f);
@@ -982,11 +1019,13 @@ public sealed class Game1 : Game
         DrawButton("MAIN MENU", alpha, EndingMenuButton);
     }
 
+    // draws the default main-menu button area.
     private void DrawButton(string text, float alpha)
     {
         DrawButton(text, alpha, PlayButton);
     }
 
+    // draws a clickable pixel button with hover feedback.
     private void DrawButton(string text, float alpha, Rectangle area)
     {
         MouseState mouse = Mouse.GetState();
@@ -1002,6 +1041,7 @@ public sealed class Game1 : Game
         DrawCentredText($"> {text} <", buttonInner, Color.White * alpha);
     }
 
+    // draws one labelled value inside a small hud panel.
     private void DrawStatPanel(Rectangle area, string label, string value, Color accent)
     {
         DrawPanel(area, PanelMid, accent);
@@ -1012,6 +1052,7 @@ public sealed class Game1 : Game
         _spriteBatch.DrawString(_font, value, new Vector2(area.Right - 12 - valueSize.X, textY), SoftWhite);
     }
 
+    // draws one compact key and action reminder.
     private void DrawControlHint(Rectangle area, string label, string value)
     {
         Vector2 labelSize = MeasureSpacedText(label);
@@ -1023,6 +1064,7 @@ public sealed class Game1 : Game
         DrawSpacedText(value, new Vector2(x + labelSize.X + 18f, y), new Color(151, 181, 205));
     }
 
+    // draws a shadowed panel with a coloured border.
     private void DrawPanel(Rectangle area, Color fill, Color accent)
     {
         DrawRectangle(new Rectangle(area.X + 4, area.Y + 4, area.Width, area.Height), Shadow);
@@ -1033,6 +1075,7 @@ public sealed class Game1 : Game
         DrawBorder(inner, 2, PanelMid);
     }
 
+    // draws a smaller pixel-styled box used inside larger panels.
     private void DrawPixelBox(Rectangle area, Color fill, Color highlight)
     {
         DrawRectangle(new Rectangle(area.X + 4, area.Y + 4, area.Width, area.Height), Shadow);
@@ -1044,6 +1087,7 @@ public sealed class Game1 : Game
         DrawRectangle(new Rectangle(inner.X, inner.Y, 3, inner.Height), highlight);
     }
 
+    // draws the extra markings that distinguish rushers from tanks.
     private void DrawEnemyDetails(Enemy enemy, bool isTank)
     {
         Rectangle bounds = enemy.Bounds;
@@ -1059,6 +1103,7 @@ public sealed class Game1 : Game
         }
     }
 
+    // draws decorative markers in all four arena corners.
     private void DrawArenaCornerMarkers()
     {
         const int length = 20;
@@ -1073,6 +1118,7 @@ public sealed class Game1 : Game
         DrawRectangle(new Rectangle(ArenaBounds.Right - 12, ArenaBounds.Bottom - 8 - length, thickness, length), Gold);
     }
 
+    // measures text and places it in the centre of a rectangle.
     private void DrawCentredText(string text, Rectangle area, Color colour)
     {
         Vector2 textSize = MeasureSpacedText(text);
@@ -1082,6 +1128,7 @@ public sealed class Game1 : Game
         DrawSpacedText(text, position, colour);
     }
 
+    // measures text while including the custom space between letters.
     private Vector2 MeasureSpacedText(string text)
     {
         string[] words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -1101,6 +1148,7 @@ public sealed class Game1 : Game
         return new Vector2(textWidth, textHeight);
     }
 
+    // draws each character separately to create the arcade letter spacing.
     private void DrawSpacedText(string text, Vector2 position, Color colour)
     {
         string[] words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -1112,9 +1160,11 @@ public sealed class Game1 : Game
         }
     }
 
+    // fills one rectangle using the shared one-pixel texture.
     private void DrawRectangle(Rectangle rectangle, Color colour) =>
         _spriteBatch.Draw(_pixel, rectangle, colour);
 
+    // draws a rectangular border using four thin filled rectangles.
     private void DrawBorder(Rectangle rectangle, int thickness, Color colour)
     {
         DrawRectangle(new Rectangle(rectangle.Left, rectangle.Top, rectangle.Width, thickness), colour);
@@ -1123,9 +1173,11 @@ public sealed class Game1 : Game
         DrawRectangle(new Rectangle(rectangle.Right - thickness, rectangle.Top, thickness, rectangle.Height), colour);
     }
 
+    // reports a key only on the frame when it changes from up to down.
     private bool IsNewKeyPress(KeyboardState current, Keys key) =>
         current.IsKeyDown(key) && !_previousKeyboard.IsKeyDown(key);
 
+    // converts keyboard controls into a two-dimensional movement vector.
     private static Vector2 ReadMovement(KeyboardState keyboard)
     {
         Vector2 movement = Vector2.Zero;
@@ -1140,6 +1192,7 @@ public sealed class Game1 : Game
         return movement;
     }
 
+    // returns the safe local path used for the saved high score.
     private static string GetHighScorePath()
     {
         string directory = Path.Combine(
@@ -1148,12 +1201,14 @@ public sealed class Game1 : Game
         return Path.Combine(directory, "highscore.txt");
     }
 
+    // returns the copied soundtrack path beside the built game files.
     private static string GetMusicPath() => Path.Combine(
         AppContext.BaseDirectory,
         "Content",
         "Audio",
         "ThemeMusic.ogg");
 
+    // releases graphics, sound, and music resources when the game closes.
     protected override void Dispose(bool disposing)
     {
         if (disposing)

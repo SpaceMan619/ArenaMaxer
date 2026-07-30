@@ -11,7 +11,7 @@ ArenaMaxer is a fast-paced 2D survival game built with C# and MonoGame. Defend
 the arena against an escalating enemy swarm, collect health power-ups, and chase
 a new high score.
 
-Current release: **v1.0**
+Current release: **v1.1**
 
 ## Gameplay
 

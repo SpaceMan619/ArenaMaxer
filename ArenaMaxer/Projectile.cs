@@ -3,7 +3,7 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>A player-fired attack that travels in a normalized direction.</summary>
+/// <summary>a player-fired attack that travels in a normalized direction.</summary>
 public sealed class Projectile
 {
     public const int DefaultDamage = 10;
@@ -13,6 +13,7 @@ public sealed class Projectile
 
     private float _remainingLifetime = MaximumLifetime;
 
+    // validates and stores the projectile's starting values.
     public Projectile(Vector2 startPosition, Vector2 direction, int damage = DefaultDamage)
     {
         if (direction == Vector2.Zero)
@@ -34,6 +35,7 @@ public sealed class Projectile
         Size,
         Size);
 
+    // moves the projectile and reduces its remaining lifetime.
     public void Update(float deltaTime)
     {
         float safeDeltaTime = Math.Max(0f, deltaTime);

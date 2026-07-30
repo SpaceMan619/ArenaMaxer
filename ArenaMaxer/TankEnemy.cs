@@ -2,9 +2,10 @@ using Microsoft.Xna.Framework;
 
 namespace ArenaMaxer;
 
-/// <summary>A slow, durable enemy that deals more damage and rewards 150 points.</summary>
+/// <summary>a slow, durable enemy that deals more damage and rewards extra points.</summary>
 public sealed class TankEnemy : Enemy
 {
+    // creates the heavy enemy using its larger health, damage, and size.
     public TankEnemy(Vector2 position)
         : base(
             position,

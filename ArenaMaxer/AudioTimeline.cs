@@ -2,7 +2,7 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>Defines the timing rules used to transition and loop the game soundtrack.</summary>
+/// <summary>defines the timing rules used to transition and loop the game soundtrack.</summary>
 public static class AudioTimeline
 {
     public const float MenuLoopEndSeconds = 39f;
@@ -12,6 +12,7 @@ public static class AudioTimeline
     public const float GameplayVolume = 0.92f;
     public const float GameOverVolume = 0.84f;
 
+    // moves the volume from its starting value toward its target value.
     public static float FadeVolume(float elapsedSeconds, float durationSeconds, float start, float target)
     {
         if (durationSeconds <= 0f)

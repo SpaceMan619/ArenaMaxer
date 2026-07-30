@@ -25,7 +25,21 @@ that do not require a graphics device.
 | Difficulty | Wave quota and wave-completion rule |
 | Wave upgrades | Triple Shot boss-preparation upgrade |
 
-## 3. Edge cases
+## 3. How to read an NUnit test
+
+NUnit is the testing framework used by this project. The `[Test]` attribute tells
+NUnit that a method is a test it should run. Each test follows three simple ideas:
+
+1. Arrange: create the objects and starting values.
+2. Act: call the method being checked.
+3. Assert: compare the actual result with the expected result.
+
+For example, the damage test creates a player, applies more damage than the
+player's health, and uses `Assert.That` to confirm the final health is zero. A
+failed assertion makes `dotnet test` report the test name and the difference
+between the expected and actual values.
+
+## 4. Edge cases
 
 Tests include:
 
@@ -38,13 +52,13 @@ Tests include:
 - Triple Shot activating only through the boss-preparation upgrade
 - Boss Rusher reinforcements spawning only at their configured interval
 
-## 4. Independence and repeatability
+## 5. Independence and repeatability
 
 Every test creates its own objects and does not depend on execution order. Random
 enemy positions, graphics, keyboard state, saved user files, and real elapsed time
 are excluded from unit tests.
 
-## 5. Current result
+## 6. Current result
 
 Command:
 
@@ -60,7 +74,7 @@ Failed: 0
 Skipped: 0
 ```
 
-## 6. Manual gameplay verification
+## 7. Manual gameplay verification
 
 Manual playtesting verifies:
 
@@ -75,7 +89,7 @@ Manual playtesting verifies:
 9. Spawn speed and Tank frequency increase over time.
 10. Game Over appears at zero health and restart works.
 11. High score remains after closing and reopening the game.
-12. Escape closes the game.
+12. Escape closes the game from the main screen.
 13. Combat pauses only after every enemy in the current wave is defeated or
     removed, and the three upgrade cards accept mouse or number-key selection.
 14. The soundtrack plays 0:00–0:39 on the menu, begins gameplay from 0:39 with

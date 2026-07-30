@@ -3,9 +3,10 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>Defines shared state and steering behaviour for all enemy types.</summary>
+/// <summary>defines shared state and steering behaviour for all enemy types.</summary>
 public abstract class Enemy
 {
+    // validates and stores the statistics shared by every enemy type.
     protected Enemy(Vector2 position, int maximumHealth, int contactDamage, float speed, int size, int scoreValue)
     {
         Position = position;
@@ -34,10 +35,7 @@ public abstract class Enemy
         Size,
         Size);
 
-    /// <summary>
-    /// Steers toward the player. Dot product measures facing alignment and the 2D
-    /// cross product determines whether the target is left or right.
-    /// </summary>
+    // steers toward the player using dot and cross products to turn smoothly.
     public virtual void Update(Vector2 playerPosition, float deltaTime)
     {
         HitFlash = Math.Max(0f, HitFlash - deltaTime);
@@ -54,7 +52,7 @@ public abstract class Enemy
         Position += Forward * Speed * Math.Max(deltaTime, 0f);
     }
 
-    /// <summary>Applies damage and reports whether this hit defeated the enemy.</summary>
+    // applies damage and reports whether this hit defeated the enemy.
     public bool TakeDamage(int amount)
     {
         if (amount < 0)

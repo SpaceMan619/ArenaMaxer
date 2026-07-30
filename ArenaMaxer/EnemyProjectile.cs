@@ -3,7 +3,7 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>A hostile projectile that the player must avoid during the boss battle.</summary>
+/// <summary>a hostile projectile that the player must avoid during the boss battle.</summary>
 public sealed class EnemyProjectile
 {
     public const float Speed = 310f;
@@ -12,6 +12,7 @@ public sealed class EnemyProjectile
 
     private float _remainingLifetime = MaximumLifetime;
 
+    // validates and stores the starting direction and damage.
     public EnemyProjectile(Vector2 startPosition, Vector2 direction, int damage)
     {
         if (direction == Vector2.Zero)
@@ -34,6 +35,7 @@ public sealed class EnemyProjectile
         Size,
         Size);
 
+    // moves the projectile and reduces how long it can remain active.
     public void Update(float deltaTime)
     {
         float safeDeltaTime = Math.Max(0f, deltaTime);

@@ -4,7 +4,7 @@ using System.IO;
 
 namespace ArenaMaxer;
 
-/// <summary>Controls the optional local soundtrack, section transitions, fades, and looping.</summary>
+/// <summary>controls the optional soundtrack, section transitions, fades, and looping.</summary>
 public sealed class MusicController : IDisposable
 {
     private enum MusicSection
@@ -26,7 +26,7 @@ public sealed class MusicController : IDisposable
     public bool IsAvailable => _isAvailable;
     public string LastError { get; private set; } = string.Empty;
 
-    /// <summary>Loads a music file without allowing missing or unsupported audio to crash the game.</summary>
+    // loads the music without letting an audio problem crash the game.
     public bool TryLoad(string path)
     {
         if (!File.Exists(path))
@@ -53,6 +53,7 @@ public sealed class MusicController : IDisposable
         }
     }
 
+    // starts and loops the opening section used by menus.
     public void StartMenu()
     {
         if (!_isAvailable)
@@ -62,6 +63,7 @@ public sealed class MusicController : IDisposable
         PlayFrom(TimeSpan.Zero, AudioTimeline.MenuVolume);
     }
 
+    // jumps to the gameplay section and begins its fade-in.
     public void StartGameplay()
     {
         if (!_isAvailable)
@@ -72,6 +74,7 @@ public sealed class MusicController : IDisposable
         BeginFade(0f, AudioTimeline.GameplayVolume, AudioTimeline.GameplayFadeSeconds);
     }
 
+    // lowers the soundtrack slightly for an ending screen.
     public void EnterGameOver()
     {
         if (!_isAvailable)
@@ -81,20 +84,21 @@ public sealed class MusicController : IDisposable
         BeginFade(MediaPlayer.Volume, AudioTimeline.GameOverVolume, 1.2f);
     }
 
-    /// <summary>Pauses the current soundtrack position when gameplay is paused.</summary>
+    // pauses the soundtrack at its current position.
     public void Pause()
     {
         if (_isAvailable && MediaPlayer.State == MediaState.Playing)
             MediaPlayer.Pause();
     }
 
-    /// <summary>Resumes the same soundtrack position after gameplay continues.</summary>
+    // resumes the soundtrack from the paused position.
     public void Resume()
     {
         if (_isAvailable && MediaPlayer.State == MediaState.Paused)
             MediaPlayer.Resume();
     }
 
+    // updates volume fades and restarts the correct loop when needed.
     public void Update(float deltaTime)
     {
         if (!_isAvailable)
@@ -128,6 +132,7 @@ public sealed class MusicController : IDisposable
         }
     }
 
+    // stores the values needed to interpolate a volume change.
     private void BeginFade(float start, float target, float duration)
     {
         _fadeElapsed = 0f;
@@ -137,6 +142,7 @@ public sealed class MusicController : IDisposable
         MediaPlayer.Volume = start;
     }
 
+    // advances an active fade using the shared timeline calculation.
     private void UpdateFade(float deltaTime)
     {
         if (_fadeElapsed >= _fadeDuration)
@@ -150,12 +156,14 @@ public sealed class MusicController : IDisposable
             _fadeTarget);
     }
 
+    // starts the theme at a chosen time and volume.
     private void PlayFrom(TimeSpan position, float volume)
     {
         MediaPlayer.Volume = volume;
         MediaPlayer.Play(_theme, position);
     }
 
+    // shuts audio down after an unexpected playback failure.
     private void DisableAudio()
     {
         _isAvailable = false;
@@ -165,10 +173,11 @@ public sealed class MusicController : IDisposable
         }
         catch (Exception)
         {
-            // Audio is optional; a platform audio failure should not stop gameplay.
+            // audio is optional, so a platform failure should not stop gameplay.
         }
     }
 
+    // stops playback and releases the loaded song during shutdown.
     public void Dispose()
     {
         if (_isAvailable)
@@ -179,7 +188,7 @@ public sealed class MusicController : IDisposable
             }
             catch (Exception)
             {
-                // The audio device may already have been released during shutdown.
+                // the audio device may already be released during shutdown.
             }
         }
 

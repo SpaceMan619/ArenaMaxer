@@ -4,9 +4,10 @@ using System.IO;
 
 namespace ArenaMaxer;
 
-/// <summary>Loads and saves a high score while safely handling invalid or unavailable files.</summary>
+/// <summary>loads and saves a high score while safely handling file problems.</summary>
 public static class HighScoreStorage
 {
+    // loads a valid non-negative score or safely falls back to zero.
     public static int Load(string path)
     {
         try
@@ -28,6 +29,7 @@ public static class HighScoreStorage
         }
     }
 
+    // saves a non-negative score and reports whether the write succeeded.
     public static bool Save(string path, int score)
     {
         try

@@ -3,7 +3,7 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>Stores and updates player state independently from rendering.</summary>
+/// <summary>stores and updates player state independently from rendering.</summary>
 public sealed class Player
 {
     public const int StartingMaximumHealth = 100;
@@ -13,6 +13,7 @@ public sealed class Player
 
     private float _shotTimer;
 
+    // creates a healthy player with one standard projectile.
     public Player(Vector2 startPosition)
     {
         Position = startPosition;
@@ -37,7 +38,7 @@ public sealed class Player
         Size,
         Size);
 
-    /// <summary>Moves the player at a frame-rate-independent speed and keeps them inside the arena.</summary>
+    // moves the player using delta time and keeps them inside the arena.
     public void Move(Vector2 input, float deltaTime, Rectangle arena)
     {
         if (input != Vector2.Zero)
@@ -54,10 +55,11 @@ public sealed class Player
             MathHelper.Clamp(Position.Y, arena.Top + halfSize, arena.Bottom - halfSize));
     }
 
+    // reduces the shot cooldown once per frame.
     public void Update(float deltaTime) =>
         _shotTimer = Math.Max(0f, _shotTimer - Math.Max(deltaTime, 0f));
 
-    /// <summary>Returns true only when a shot is allowed, then begins the cooldown.</summary>
+    // returns true when the cooldown allows another shot.
     public bool TryShoot()
     {
         // the cooldown keeps one key press from becoming a wall of bullets.
@@ -68,7 +70,7 @@ public sealed class Player
         return true;
     }
 
-    /// <summary>Applies non-negative damage while preventing health from dropping below zero.</summary>
+    // applies valid damage without letting health fall below zero.
     public void TakeDamage(int amount)
     {
         if (amount < 0)
@@ -76,7 +78,7 @@ public sealed class Player
         Health = Math.Max(0, Health - amount);
     }
 
-    /// <summary>Restores non-negative health without exceeding the maximum.</summary>
+    // restores valid health without exceeding the current maximum.
     public void Heal(int amount)
     {
         if (amount < 0)
@@ -84,7 +86,7 @@ public sealed class Player
         Health = Math.Min(MaximumHealth, Health + amount);
     }
 
-    /// <summary>Applies one of the permanent upgrades offered between waves.</summary>
+    // applies one permanent upgrade chosen between waves.
     public void ApplyUpgrade(UpgradeType upgrade)
     {
         if (!CanApplyUpgrade(upgrade))
@@ -110,7 +112,7 @@ public sealed class Player
         }
     }
 
-    /// <summary>Reports whether an upgrade can still improve the player.</summary>
+    // checks whether the selected upgrade has reached its limit.
     public bool CanApplyUpgrade(UpgradeType upgrade) => upgrade switch
     {
         UpgradeType.MaxHealth => true,

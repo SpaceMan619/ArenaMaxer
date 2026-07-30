@@ -2,9 +2,10 @@ using Microsoft.Xna.Framework;
 
 namespace ArenaMaxer;
 
-/// <summary>A fast, fragile enemy that rewards 50 points.</summary>
+/// <summary>a fast, fragile enemy that rewards fifty points.</summary>
 public sealed class RusherEnemy : Enemy
 {
+    // creates the light enemy using its balanced health, damage, and speed.
     public RusherEnemy(Vector2 position)
         : base(
             position,

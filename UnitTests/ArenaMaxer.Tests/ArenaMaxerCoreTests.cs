@@ -3,10 +3,11 @@ using NUnit.Framework;
 
 namespace ArenaMaxer.Tests;
 
-/// <summary>Fifteen representative tests covering ArenaMaxer's core rules and mathematics.</summary>
+/// <summary>contains fifteen tests for the game's core rules and mathematics.</summary>
 public sealed class ArenaMaxerCoreTests
 {
     [Test]
+    // checks the constructor gives a new player full health.
     public void NewPlayer_StartsAtMaximumHealth()
     {
         Player player = new(Vector2.Zero);
@@ -14,6 +15,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks large damage values cannot create negative health.
     public void Damage_NeverReducesHealthBelowZero()
     {
         Player player = new(Vector2.Zero);
@@ -22,6 +24,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks healing stops at the player's current maximum health.
     public void Healing_DoesNotExceedMaximumHealth()
     {
         Player player = new(Vector2.Zero);
@@ -31,6 +34,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks normalization removes the diagonal speed advantage.
     public void DiagonalMovement_IsNormalizedToPlayerSpeed()
     {
         Player player = new(new Vector2(500f, 300f));
@@ -40,6 +44,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks another shot is blocked until the cooldown ends.
     public void Shooting_UsesItsCooldown()
     {
         Player player = new(Vector2.Zero);
@@ -50,6 +55,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks projectile movement uses direction, speed, and time.
     public void Projectile_MovesByDirectionSpeedAndTime()
     {
         Projectile projectile = new(Vector2.Zero, Vector2.UnitX);
@@ -58,6 +64,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks one standard projectile defeats the weaker enemy.
     public void Rusher_DiesFromOneStandardShot()
     {
         RusherEnemy rusher = new(Vector2.Zero);
@@ -65,6 +72,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks the tank survives two standard hits and falls on the third.
     public void Tank_RequiresThreeStandardShots()
     {
         TankEnemy tank = new(Vector2.Zero);
@@ -77,6 +85,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks each normal wave increases its enemy quota by four.
     public void WaveQuota_IncreasesFromFifteenEnemies()
     {
         Assert.Multiple(() =>
@@ -87,6 +96,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks an upgrade waits until the final active enemy is removed.
     public void WaveCompletion_RequiresNoActiveEnemies()
     {
         Assert.Multiple(() =>
@@ -97,6 +107,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks distance and pickup range follow the three-four-five triangle.
     public void DistanceAndPickupRange_UseThePythagoreanRule()
     {
         Assert.Multiple(() =>
@@ -107,18 +118,21 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks a positive dot product recognizes a target in front.
     public void DotProduct_RecognizesAForwardTarget()
     {
         Assert.That(MathUtilities.Dot(Vector2.UnitX, new Vector2(3f, 1f)), Is.GreaterThan(0f));
     }
 
     [Test]
+    // checks the cross-product sign recognizes the chosen side.
     public void CrossProduct_RecognizesTheLeftSide()
     {
         Assert.That(MathUtilities.Cross(Vector2.UnitX, new Vector2(0f, -1f)), Is.LessThan(0f));
     }
 
     [Test]
+    // checks boss preparation can unlock all three projectiles.
     public void TripleShot_IsUnlockedForBossPreparation()
     {
         Player player = new(Vector2.Zero);
@@ -127,6 +141,7 @@ public sealed class ArenaMaxerCoreTests
     }
 
     [Test]
+    // checks the boss timers produce shots and reinforcement pairs.
     public void Boss_TimesItsShotsAndRusherReinforcements()
     {
         BossEnemy boss = new(Vector2.Zero);

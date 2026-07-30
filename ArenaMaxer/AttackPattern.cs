@@ -3,9 +3,10 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>Builds symmetric projectile volleys for single, double, and triple shot.</summary>
+/// <summary>builds symmetric projectile volleys for single, double, and triple shot.</summary>
 public static class AttackPattern
 {
+    // builds the correct spread for the player's current projectile count.
     public static Vector2[] CreateDirections(Vector2 facingDirection, int projectileCount)
     {
         if (facingDirection == Vector2.Zero)
@@ -20,6 +21,7 @@ public static class AttackPattern
         };
     }
 
+    // rotates one direction by a small angle using sine and cosine.
     private static Vector2 Rotate(Vector2 direction, float radians)
     {
         float cosine = MathF.Cos(radians);

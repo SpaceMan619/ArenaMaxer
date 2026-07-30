@@ -3,7 +3,7 @@ using System;
 
 namespace ArenaMaxer;
 
-/// <summary>The final purple arena guardian. It fires aimed projectiles and summons Rushers.</summary>
+/// <summary>the final purple guardian that fires projectiles and summons rushers.</summary>
 public sealed class BossEnemy : Enemy
 {
     public const float FireInterval = 0.7f;
@@ -14,6 +14,7 @@ public sealed class BossEnemy : Enemy
     private float _fireTimer = FireInterval;
     private float _minionSpawnTimer = MinionSpawnInterval;
 
+    // creates the boss with its larger health, damage, size, and score value.
     public BossEnemy(Vector2 position)
         : base(
             position,
@@ -25,7 +26,7 @@ public sealed class BossEnemy : Enemy
     {
     }
 
-    /// <summary>Updates the firing timer and reports when a projectile should be created.</summary>
+    // counts down and reports when the boss should fire.
     public bool TryFire(float deltaTime)
     {
         // a tiny tolerance stops floating point rounding from delaying a shot by one frame.
@@ -37,7 +38,7 @@ public sealed class BossEnemy : Enemy
         return true;
     }
 
-    /// <summary>Updates the reinforcement timer and reports when a Rusher pair should spawn.</summary>
+    // counts down and reports when the boss should summon rushers.
     public bool TrySpawnMinions(float deltaTime)
     {
         // the boss gets help in bursts, so the fight has pressure without endless spawns.

@@ -1,6 +1,6 @@
 namespace ArenaMaxer;
 
-/// <summary>Represents the currently active screen and permitted game behaviour.</summary>
+/// <summary>represents the active screen and the gameplay allowed within it.</summary>
 public enum GameState
 {
     Start,

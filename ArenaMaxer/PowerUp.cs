@@ -2,18 +2,19 @@ using Microsoft.Xna.Framework;
 
 namespace ArenaMaxer;
 
-/// <summary>Supported collectible effects.</summary>
+/// <summary>lists the collectible effects supported by the game.</summary>
 public enum PowerUpType
 {
     Health
 }
 
-/// <summary>A collectible that applies an effect when the player reaches its pickup range.</summary>
+/// <summary>stores a collectible that applies an effect when picked up.</summary>
 public sealed class PowerUp
 {
     public const int DefaultSize = 30;
     public const int HealthRestored = 25;
 
+    // stores the pickup position and effect type.
     public PowerUp(Vector2 position, PowerUpType type)
     {
         Position = position;
@@ -29,6 +30,7 @@ public sealed class PowerUp
         Size,
         Size);
 
+    // applies the effect that belongs to this pickup type.
     public void ApplyTo(Player player)
     {
         if (Type == PowerUpType.Health)

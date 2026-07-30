@@ -1,6 +1,6 @@
 namespace ArenaMaxer;
 
-/// <summary>Upgrades offered to the player between completed waves.</summary>
+/// <summary>lists the upgrades offered between completed waves.</summary>
 public enum UpgradeType
 {
     MaxHealth,
