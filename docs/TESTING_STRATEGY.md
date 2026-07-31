@@ -1,66 +1,69 @@
-# ArenaMaxer — Testing Strategy
+# ArenaMaxer - Testing Strategy
 
 ## 1. Approach
 
-The project uses NUnit in a separate `ArenaMaxer.Tests` project. Tests focus on
-deterministic gameplay and mathematical logic rather than MonoGame drawing.
+I used NUnit in a separate `ArenaMaxer.Tests` project. I did not try to unit-test
+the drawing code. Instead, the tests target rules and calculations where a wrong
+answer can directly change the way the game plays.
 
-The code was designed for testability by moving health, movement, collision,
-difficulty, score, and vector calculations out of `Game1` and into small classes
-that do not require a graphics device.
+Health, movement, projectiles, collision helpers, difficulty, and vector maths
+are kept in small classes that can be created without a graphics device. That
+lets me run the tests without starting a game window.
 
-## 2. Areas covered
+There are **15 independent tests** in
+`UnitTests/ArenaMaxer.Tests/ArenaMaxerCoreTests.cs`.
 
-| Area | Examples verified |
+## 2. What is covered
+
+| Area | What is checked |
 |---|---|
-| Player health | Initial health, damage floor, healing limit |
-| Movement | Normalized diagonal speed |
-| Attacking | Shooting cooldown |
+| Player health | Starting health, damage floor, and healing limit |
+| Movement | Diagonal movement is normalized |
+| Shooting | The firing cooldown blocks an early second shot |
 | Projectiles | Direction, speed, and elapsed-time movement |
-| Enemies | Rusher, Tank, and Boss durability and statistics |
-| Boss attack | Fire interval and Rusher reinforcement interval |
+| Enemies | Rusher and Tank durability |
+| Wave rules | Quota growth and completion only after all active enemies are gone |
 | Distance | Pythagorean distance and pickup radius |
-| Dot product | Target-in-front result |
-| Cross product | Left/right sign |
-| Difficulty | Wave quota and wave-completion rule |
-| Wave upgrades | Triple Shot boss-preparation upgrade |
+| Dot product | A target in front produces a positive result |
+| Cross product | The sign identifies the chosen side |
+| Upgrades | Triple Shot unlocks during Boss Prep |
+| Boss timing | Boss shots and two-Rusher reinforcement timing |
 
-## 3. How to read an NUnit test
+## 3. How one test works
 
-NUnit is the testing framework used by this project. The `[Test]` attribute tells
-NUnit that a method is a test it should run. Each test follows three simple ideas:
+The tests follow the usual three-step pattern:
 
-1. Arrange: create the objects and starting values.
-2. Act: call the method being checked.
-3. Assert: compare the actual result with the expected result.
+1. **Arrange:** create the objects and starting values.
+2. **Act:** call the method being tested.
+3. **Assert:** compare the actual result with the expected result.
 
-For example, the damage test creates a player, applies more damage than the
-player's health, and uses `Assert.That` to confirm the final health is zero. A
-failed assertion makes `dotnet test` report the test name and the difference
-between the expected and actual values.
+For example, `Damage_NeverReducesHealthBelowZero` creates a player, applies 150
+damage, and checks that health is zero rather than negative. If the assertion
+fails, NUnit reports the test name and the expected-versus-actual result.
 
 ## 4. Edge cases
 
-Tests include:
+I included cases that are easy to get wrong during normal play:
 
-- Damage larger than remaining health
-- Healing beyond maximum health
-- Diagonal movement normalization
-- Shooting during and after cooldown
-- Wave completion only after the full enemy quota is spawned and removed
-- A Tank surviving the first two projectile hits
-- Triple Shot activating only through the boss-preparation upgrade
-- Boss Rusher reinforcements spawning only at their configured interval
+- damage larger than the player's remaining health
+- healing beyond maximum health
+- diagonal input accidentally moving faster
+- shooting before the cooldown has finished
+- a Rusher dying to one standard shot
+- a Tank surviving two shots and dying on the third
+- a wave waiting for the last active enemy to be removed
+- Triple Shot being available for Boss Prep
+- boss reinforcements appearing at the configured interval
 
 ## 5. Independence and repeatability
 
-Every test creates its own objects and does not depend on execution order. Random
-enemy positions, graphics, keyboard state, saved user files, and real elapsed time
-are excluded from unit tests.
+Every test creates its own objects and does not rely on another test running
+first. There is no graphics device, keyboard input, random enemy position, real
+save file, or open game window involved. That keeps the result repeatable.
 
-## 6. Current result
+## 6. Test command and result
 
-Command:
+Run the tests with:
 
 ```bash
 dotnet test ArenaMaxer.slnx
@@ -74,29 +77,24 @@ Failed: 0
 Skipped: 0
 ```
 
-## 7. Manual gameplay verification
+## 7. Manual gameplay checks
 
-Manual playtesting verifies:
+Automated tests do not replace actually playing the game, so I also checked the
+main flow manually:
 
-1. Play button and Enter both start the game.
-2. WASD and arrow keys move the player.
-3. Space fires in the last movement direction.
-4. Rusher dies in one hit.
-5. Tank dies in three hits.
-6. Enemy contact reduces health.
-7. Green power-up restores health.
-8. Score, time, wave, and health are readable.
-9. Spawn speed and Tank frequency increase over time.
-10. Game Over appears at zero health and restart works.
-11. High score remains after closing and reopening the game.
-12. Escape closes the game from the main screen.
-13. Combat pauses only after every enemy in the current wave is defeated or
-    removed, and the three upgrade cards accept mouse or number-key selection.
-14. The soundtrack plays 0:00–0:39 on the menu, begins gameplay from 0:39 with
-    a 3.5-second fade, and loops gameplay without replaying the intro.
-15. Clearing wave four shows Boss Prep; defeating the guardian after wave five
-    displays the Victory screen.
-16. The final guardian fires dodge-only purple projectiles and summons Rusher
-    reinforcements during the battle.
-17. Escape pauses gameplay and the soundtrack, then Resume returns to the same
-    game state; Main Menu returns to the start screen.
+- Play and Enter start the game.
+- WASD and arrow keys move the player, and Space fires in the last movement
+  direction.
+- Rushers, Tanks, contact damage, health pickups, score, time, and wave labels
+  behave as expected.
+- Enemy speed and Tank frequency increase over time.
+- Game Over, restart, high-score persistence, and the Victory screen work.
+- A wave does not end until the full quota has spawned and all active enemies
+  are gone.
+- Upgrade cards work with the mouse and number keys.
+- The menu soundtrack uses 0:00-0:39, gameplay starts at 0:39 with a fade, and
+  the gameplay section loops correctly.
+- The boss fires dodge-only projectiles and summons Rusher pairs every seven
+  seconds.
+- Escape pauses the game and music, Resume returns to the same game state, and
+  Main Menu returns to the start screen. Escape quits only from the main menu.

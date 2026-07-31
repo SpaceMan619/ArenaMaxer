@@ -81,7 +81,7 @@ public sealed class Game1 : Game
         };
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
-        Window.Title = "ArenaMaxer v1.1";
+        Window.Title = "ArenaMaxer v1.2";
     }
 
     // creates graphics resources, loads audio, and resets the first run.
@@ -934,7 +934,7 @@ public sealed class Game1 : Game
         DrawButton("CREDITS", alpha, CreditsButton);
         DrawCentredText("GAME DEVELOPED BY PROJECT FUTURE", new Rectangle(0, 484, ScreenWidth, 24),
             new Color(151, 181, 205) * alpha);
-        DrawCentredText("VERSION 1.1", new Rectangle(700, 510, 126, 24), Gold * alpha);
+        DrawCentredText("VERSION 1.2", new Rectangle(700, 510, 126, 24), Gold * alpha);
         if (!_music.IsAvailable)
         {
             DrawCentredText("MUSIC UNAVAILABLE", new Rectangle(198, 510, 260, 24), Crimson * alpha);

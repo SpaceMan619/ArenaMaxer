@@ -7,27 +7,24 @@
           SURVIVE. ADAPT. WIN.
 ```
 
-ArenaMaxer is a fast-paced 2D survival game built with C# and MonoGame. Defend
-the arena against an escalating enemy swarm, collect health power-ups, and chase
-a new high score.
+I built ArenaMaxer as a small 2D survival game in C# and MonoGame. The basic
+loop is easy to understand: move, shoot, survive the next wave, choose an
+upgrade, and try to reach the guardian with enough health left to win.
 
-Current release: **v1.1**
+Current release: **v1.2**
 
-## Gameplay
+## How the game works
 
-Two enemy classes create different threats:
+Rushers are quick and fragile. Tanks are slower, but a standard projectile takes
+three hits to bring one down. Later waves increase both the number of enemies and
+the chance of seeing Tanks.
 
-- **Rushers** are quick, fragile, and dangerous in groups.
-- **Tanks** move slowly but absorb three shots and inflict heavy contact damage.
-
-Enemy numbers and composition scale as the survival timer advances. Points are
-awarded for defeating enemies, collecting power-ups, and surviving each second.
-Each wave has a fixed enemy quota. Combat pauses for an upgrade only after every
-enemy in that quota has been removed. The player can choose permanent Max Health,
-Double Shot, or Bullet Damage upgrades. Clearing wave four opens a Boss Prep
-choice, where Triple Shot can be selected for the final battle. Defeat the purple
-guardian in wave five to secure the arena. The highest score is saved locally
-between sessions.
+Each wave has a quota. The upgrade screen waits until that quota has spawned and
+the arena is empty, so enemies do not disappear just because the timer reached a
+new wave. Normal waves offer Max Health, Double Shot, or Bullet Damage. After
+wave four, Boss Prep offers Triple Shot for the final fight. The purple guardian
+shoots back and sends Rusher reinforcements into the arena. Defeating it shows
+the Victory screen.
 
 ## Controls
 
@@ -36,12 +33,13 @@ between sessions.
 | Move | WASD or Arrow Keys |
 | Shoot | Space |
 | Pause / resume | Escape or Enter during a run |
-| Start / restart | Enter or Play button |
-| View credits | C or Credits button on the main screen |
-| Choose wave upgrade | Click a card or press 1, 2, or 3 |
+| Start / restart | Enter or the Play button |
+| View credits | C or the Credits button on the main screen |
+| Choose an upgrade | Click a card or press 1, 2, or 3 |
 | Quit | Escape from the main screen |
 
-The player fires in the last movement direction. Green power-ups restore health.
+The player fires in the last movement direction. Green power-ups restore
+health.
 
 ## Running the game
 
@@ -50,43 +48,46 @@ The player fires in the last movement direction. Green power-ups restore health.
 - .NET SDK 9 or newer
 - A desktop environment supported by MonoGame DesktopGL
 
-Clone the repository and run:
+From the repository folder:
 
 ```bash
 dotnet restore
 dotnet run --project ArenaMaxer/ArenaMaxer.csproj
 ```
 
-In Visual Studio Code, open the repository folder and select
-**Run and Debug → Run ArenaMaxer**.
+In Visual Studio Code, open the repository and use **Run and Debug -> Run
+ArenaMaxer**.
 
-## Automated tests
+## Tests
 
-The separate NUnit project tests health, damage, movement, projectiles, collision
-helpers, scoring, enemy durability, power-ups, vector mathematics, and difficulty
-scaling.
+The separate NUnit project contains 15 tests for the rules that are easiest to
+break while changing the game: health limits, movement, shooting cooldowns,
+projectile movement, enemy durability, wave completion, pickup distance, dot
+and cross products, upgrades, and boss timing.
 
 ```bash
 dotnet test ArenaMaxer.slnx
 ```
 
-Current result: **15 passed, 0 failed**.
+Latest result: **15 passed, 0 failed**.
 
 ## Technical highlights
 
-- Object-oriented enemy hierarchy with `RusherEnemy`, `TankEnemy`, and `BossEnemy`
-- Testable gameplay logic separated from MonoGame rendering
-- Vector-based player, enemy, and projectile movement
-- Distance-based detection and collection
-- Dot-product facing checks and cross-product steering
-- Linear interpolation for health, danger, and screen transitions
-- Wave-based algebraic difficulty scaling
-- Paused between-wave upgrade selection with persistent player statistics
-- Final boss battle with aimed projectiles, Rusher reinforcements, and a Victory screen
-- Defensive validation and high-score file exception handling
-- Section-based soundtrack playback with timed fades and looping
-- Original code-generated pulse/noise arcade sound effects
-- XML documentation embedded in the C# source
+- `Enemy` is an abstract base class. `RusherEnemy`, `TankEnemy`, and `BossEnemy`
+  reuse it while changing their own statistics and behaviour.
+- Player, enemy, projectile, collision, score, difficulty, and audio rules live
+  in separate classes, rather than being packed into `Game1`.
+- Movement and targeting use `Vector2`, distance checks, normalization, dot
+  products, and cross products.
+- Lerp is used for the health bar, screen fades, and the low-health danger tint.
+- Difficulty scales through wave quotas, spawn timing, and enemy composition.
+- The game pauses between waves for permanent upgrades and supports a separate
+  Boss Prep choice.
+- The soundtrack has menu and gameplay sections, fades between states, and loops
+  from the gameplay start point.
+- Arcade sound effects are generated in code for shooting, impacts, pickups,
+  waves, damage, and Game Over.
+- C# XML documentation is included in the source.
 
 ## Credits
 
@@ -95,7 +96,7 @@ Current result: **15 passed, 0 failed**.
 - Original procedural sound effects generated in C#
 - Built with C# and MonoGame
 
-## Documentation
+## Project documents
 
 - [Application Design Document](docs/APPLICATION_DESIGN.md)
 - [Testing Strategy](docs/TESTING_STRATEGY.md)

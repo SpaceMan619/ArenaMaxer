@@ -1,27 +1,32 @@
-# ArenaMaxer — Application Design Document
+# ArenaMaxer - Application Design Document
 
-## 1. Game idea
+## 1. Idea and scope
 
-ArenaMaxer is a top-down survival game. The player moves inside a bounded
-arena, fires projectiles in the last movement direction, defeats enemies, collects
-health power-ups, and attempts to survive increasingly difficult waves.
+ArenaMaxer is a top-down survival game. The player moves around a bounded
+arena, shoots in the last movement direction, collects health pickups, and tries
+to survive increasingly difficult waves. I kept the scope deliberately small:
+there are a few enemy types, one final guardian, and upgrades that change how a
+run feels without adding a second game inside the first one.
 
-The current visual design uses geometric pixel-art forms:
+For this version I kept the visuals as geometric pixel-art forms so I could
+focus on the gameplay and the code structure:
 
-- Blue square: player
-- Red square: fast Rusher enemy
-- Purple square: slow Tank enemy
-- Yellow square: projectile
-- Green cross: health power-up
+- blue square: player
+- red square: Rusher
+- purple square: Tank or guardian
+- yellow square: projectile
+- green cross: health pickup
 
-This separates gameplay development from final sprite production. Sprites can
-later replace the shape-drawing code without changing entity movement, health,
-collision, score, or difficulty logic.
+This also leaves the door open for a later sprite pass. The entity dimensions
+and collision rectangles are separate from the drawing code, so replacing the
+shapes with sprites would not require rewriting movement, health, collisions,
+score, or difficulty.
 
 ## 2. Architecture
 
-The project separates game coordination and rendering from testable gameplay
-rules.
+`Game1` is the coordinator. It owns the MonoGame lifecycle, reads input, updates
+the current state, handles collisions, and draws the screen. The other classes
+hold the rules that would otherwise make `Game1` difficult to follow.
 
 ```text
 Game1
@@ -32,8 +37,8 @@ Game1
 │   └── BossEnemy
 ├── List<Projectile>
 ├── List<EnemyProjectile>
-├── AttackPattern
 ├── List<PowerUp>
+├── AttackPattern
 ├── ScoreManager
 ├── DifficultyCalculator
 ├── CollisionHelper
@@ -43,173 +48,167 @@ Game1
 └── HighScoreStorage
 ```
 
-`Game1` owns the MonoGame lifecycle and coordinates input, update, collision, and
-drawing. Entity classes own their state and behaviour. Static helpers contain
-deterministic calculations, allowing them to be tested without opening a game
-window.
+The most useful split was moving deterministic calculations into small helpers.
+For example, `MathUtilities` and `DifficultyCalculator` can be tested without
+opening a MonoGame window.
 
 ## 3. Object-oriented design
 
 ### Encapsulation
 
-Player and enemy health have private setters. Health can only change through
-validated `TakeDamage` and `Heal` methods. Score can only change through the
-`ScoreManager`. This prevents unrelated classes from assigning invalid state.
+`Player.Health`, `Player.MaximumHealth`, and enemy health have private setters.
+Other classes cannot assign random values directly. They must use methods such
+as `TakeDamage`, `Heal`, or `ApplyUpgrade`, where the limits are checked.
+
+The same idea applies to score: score changes go through `ScoreManager` instead
+of being edited from random places in the game loop.
 
 ### Inheritance and abstraction
 
-`Enemy` is an abstract base class that defines shared health, damage, movement,
-collision bounds, and steering. `RusherEnemy` and `TankEnemy` configure different
-statistics while reusing the common behaviour.
+`Enemy` is an abstract base class. It contains the shared health, contact
+damage, movement, collision bounds, and steering behaviour. `RusherEnemy`,
+`TankEnemy`, and `BossEnemy` then provide their own statistics and special
+behaviour.
 
 ### Polymorphism
 
-Both enemy types are stored in `List<Enemy>`. The game updates and collides with
-them through the base type, without requiring separate collections or duplicated
-loops.
+All enemy types can be stored in a `List<Enemy>`. The update and collision loops
+work with the base type, so I do not need a separate copy of each loop for each
+enemy class.
 
-### Single responsibility
+### Responsibility of each class
 
-- `Game1`: game lifecycle, coordination, and drawing
-- `Player`: player state and movement
+- `Game1`: lifecycle, input, coordination, and drawing
+- `Player`: movement, health, shooting, and upgrades
 - `Enemy`: shared enemy state and steering
-- `Projectile`: projectile movement and lifetime
-- `EnemyProjectile`: dodge-only boss projectile movement and lifetime
+- `Projectile` and `EnemyProjectile`: movement and lifetime
 - `PowerUp`: collectible effect
-- `CollisionHelper`: collision and pickup-range checks
+- `CollisionHelper`: rectangle and distance checks
 - `MathUtilities`: reusable vector calculations
-- `DifficultyCalculator`: wave and spawn formulas
-- `ScoreManager`: score rules
-- `HighScoreStorage`: safe file persistence
-- `MusicController`: soundtrack sections, transitions, fades, and looping
-- `ArcadeSoundBank`: original generated arcade feedback effects
+- `DifficultyCalculator`: wave quotas and spawn formulas
+- `ScoreManager`: scoring rules
+- `HighScoreStorage`: safe local score persistence
+- `MusicController`: soundtrack sections, fades, pauses, and looping
+- `ArcadeSoundBank`: short arcade feedback sounds
 
-### Open/closed design
+If I add another enemy, I can derive it from `Enemy`, give it different
+statistics or update behaviour, and leave the main enemy loops alone.
 
-A new enemy can be added by deriving from `Enemy` and providing different
-statistics or overriding `Update`. Existing collision and rendering collections do
-not need to be redesigned.
+## 4. Data structures and enums
 
-## 4. Data structures
+The active enemies, projectiles, enemy projectiles, and pickups are stored in
+`List<T>` collections. Their sizes change constantly, and the game needs to
+update and draw each active object every frame. Reverse indexed loops also make
+it safe to remove an object after a collision.
 
-The game uses `List<Enemy>`, `List<Projectile>`, and `List<PowerUp>`.
+An array would need a fixed size or extra empty slots. A linked list could work,
+but it would add complexity without helping much at the small object counts in
+this game. A list is easier to read and is a good fit for the update loop.
 
-Lists were chosen because:
+`GameState`, `PowerUpType`, and `UpgradeType` are enums. They replace magic
+numbers or string comparisons with named options such as `Paused`, `Victory`,
+`Health`, and `TripleShot`.
 
-- The number of active objects changes continuously.
-- Objects must be updated and drawn sequentially each frame.
-- The expected object count is small enough that indexed iteration is efficient.
-- Reverse indexed loops allow objects to be safely removed after collisions.
-
-Arrays would have a fixed size and require unused positions or resizing. A linked
-list would add complexity and provide little benefit for the small number of
-entities used here.
-
-`GameState`, `PowerUpType`, and `UpgradeType` enums replace unclear numeric or
-string values with named states. This makes screen transitions, collectible
-effects, and between-wave choices easier to read and safer to extend.
-
-## 5. Mathematics in gameplay
+## 5. Mathematics used in the game
 
 ### Distance
 
-`Vector2.Distance` and squared distance are used for enemy detection and health
-pickup range. Squared distance avoids an unnecessary square root when only a
-range comparison is needed.
+`Vector2.Distance` is used when the actual distance is useful. Squared distance
+is used for range checks such as enemy detection and health pickups, because it
+avoids a square root when I only need to know whether something is inside a
+radius.
 
 ### Direction and vectors
 
-The player input vector is normalized so diagonal movement is not faster than
-horizontal or vertical movement. Projectiles move using:
+The movement input is converted into a direction vector and normalized. This
+stops diagonal movement from being faster than horizontal movement. Projectile
+movement follows the basic update:
 
 ```text
-new position = current position + direction × speed × delta time
+new position = current position + direction x speed x delta time
 ```
 
-Enemies calculate a normalized direction from their position to the player.
+Enemies use a normalized vector from their position towards the player.
 
 ### Algebra
 
-- `health = max(0, health - damage)`
-- `health = min(maximum health, health + healing)`
-- Permanent upgrades add `25` maximum health, one projectile, or `5` damage.
-- Spawn interval decreases by `0.11` seconds per wave.
-- A lower limit prevents impossible spawn speeds.
-- Score combines enemy rewards, power-up rewards, and wave-scaled survival points.
+The game uses simple calculations for health, upgrades, scoring, and difficulty.
+The important part for me was seeing where each calculation affects play:
+
+```text
+health = max(0, health - damage)
+health = min(maximum health, health + healing)
+spawn interval = max(0.475, (1.35 - (wave - 1) x 0.11) / 0.9)
+```
+
+The permanent upgrades add 25 maximum health, one projectile, or 5 bullet
+damage. Score comes from defeated enemies, pickups, and surviving over time.
 
 ### Dot product
 
-An enemy compares its forward vector to the desired direction with a dot product.
-A positive result means the target is generally in front; a negative result means
-the enemy must make a larger turn. This affects the enemy turn speed.
+An enemy compares its forward vector with the direction to the player. A
+positive dot product means the player is generally in front; a negative result
+means the player is behind. The result helps decide how strongly the enemy
+turns.
 
 ### Cross product
 
-The 2D cross-product value determines which side of the enemy's forward direction
-contains the player. Its sign selects clockwise or counter-clockwise rotation.
+The 2D cross-product sign tells the enemy which side of its current direction
+contains the player. One sign means turn clockwise and the other means turn
+counter-clockwise.
 
 ### Linear interpolation
 
-Lerp is used in three different visual systems:
+Lerp is used in three visible places:
 
-1. The displayed health bar smoothly approaches actual health.
-2. Start and Game Over overlays smoothly fade.
-3. A red danger tint smoothly appears when health is low.
+1. The displayed health bar smoothly follows the real health.
+2. Start, pause, Game Over, and Victory overlays fade in and out.
+3. The low-health danger tint gradually appears instead of switching on sharply.
 
-## 6. Difficulty progression
+## 6. Difficulty and wave progression
 
-Each wave has a fixed enemy quota: wave one has 15 enemies and every later wave
-adds four more. Combat pauses only when the full quota has spawned and the arena
-is empty. The player then chooses one of three permanent upgrades. A global
-`0.9` balance multiplier reduces enemy movement speed and contact damage by 10%.
-The spawn interval uses:
+Wave one requires 15 enemies. Each later normal wave adds four more. The upgrade
+screen does not appear when the last enemy is merely spawned; it appears only
+when the full quota has spawned and the active-enemy list is empty.
 
-```text
-max(0.475, (1.35 - (wave - 1) × 0.11) / 0.9)
-```
+The `0.9` balance multiplier makes the enemy speed and contact-damage settings
+slightly more forgiving. Spawn intervals still become shorter, down to a
+minimum value, and Tanks appear more often later on.
 
-Tank enemies also appear more frequently as the wave increases. This increases
-difficulty through both spawn frequency and enemy composition.
+After wave four, Boss Prep offers Triple Shot for the final fight. Wave five
+contains the guardian, whose aimed projectiles must be dodged. It also creates a
+pair of Rusher reinforcements every seven seconds. Defeating the guardian ends
+the game with the Victory screen.
 
-After wave four, the player enters Boss Prep and may choose Triple Shot instead
-of the normal Double Shot. Wave five contains only the final guardian. Its aimed
-projectiles must be dodged, and it summons pairs of Rushers every seven seconds;
-defeating it ends the game with a Victory screen.
+## 7. UI and game logic
 
-## 7. UI and game logic communication
+`Game1` reads keyboard and mouse input and turns it into simple commands. A
+movement vector goes to `Player.Move`. A new Space press calls `TryShoot`. A
+selected card becomes an `UpgradeType` and is passed to `ApplyUpgrade`.
 
-Input is read in `Game1` and converted into simple commands:
-
-- A movement vector is passed to `Player.Move`.
-- A new Space press asks `Player.TryShoot`.
-- A successful attack creates a `Projectile`.
-- A card click or number-key press is converted to an `UpgradeType`, which the
-  player validates and applies before the next wave starts.
-
-The UI reads public state such as player health, score, wave, and survival time.
-It does not directly calculate damage or change health. This keeps display code
-separate from business rules.
+The UI reads public values such as health, score, wave, and survival time. It
+does not directly change health or calculate damage. This keeps rendering and
+game rules separate while still allowing the UI to show the current state.
 
 ## 8. Error handling
 
-Player and enemy methods reject negative damage or healing with clear exceptions.
-Projectile construction rejects a zero direction or non-positive damage. A
-maxed-out multishot selection is disabled. High-score loading and saving
-handle missing files, invalid content, unavailable folders, permission errors, and
-I/O errors without crashing the game.
+Player and enemy methods reject negative damage or healing. Projectile
+constructors reject zero directions and non-positive damage. Invalid upgrades
+are rejected, and the UI disables upgrades that have reached their limit.
 
-## 9. Future visual upgrade
+`HighScoreStorage` handles missing files, invalid saved values, unavailable
+folders, permission errors, and other I/O errors without crashing the game.
 
-Version 2 can introduce directional player sprites and two-frame walking
-animations. Entity dimensions and collision rectangles already exist separately
-from textures, so graphics can be replaced while retaining consistent gameplay.
+## 9. Audio and future visual work
 
-## 10. Audio design
+The soundtrack treats 0:00-0:39 as the menu section. Starting the game jumps to
+0:39 and fades into gameplay volume over 3.5 seconds. When the track ends, the
+gameplay section loops from 0:39 instead of replaying the menu intro.
 
-The soundtrack controller treats 0:00–0:39 as the menu section. Starting play
-jumps to 0:39 and fades to gameplay volume over 3.5 seconds. When the track ends,
-gameplay restarts at 0:39 so the menu section is not repeated during a run.
+Shooting, impacts, defeats, damage, pickups, wave starts, and Game Over use
+short generated arcade sounds. This keeps the sound design consistent without
+adding a large collection of external effect files.
 
-Shooting, impact, defeat, damage, pickup, wave, and Game Over effects are generated
-from short pulse, triangle, and noise voices. This produces consistent arcade
-feedback without relying on third-party sound-effect files.
+If I continue the project, I would replace the geometric player with directional
+sprites and a small walking animation. The existing entity sizes and collision
+rectangles mean that this would be a visual change, not a rewrite of the rules.
